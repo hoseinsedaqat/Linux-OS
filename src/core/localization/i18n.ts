@@ -499,6 +499,8 @@ const fa: Record<string, string> = {
   'Open parenthesis': 'پرانتز باز',
   'Close parenthesis': 'پرانتز بسته',
   'Backspace': 'حذف نویسه',
+  'Storage is full': 'فضای ذخیره‌سازی پر شده است',
+  'Images up to 1.5 MB are stored in this browser only.': 'تصاویر تا ۱.۵ مگابایت فقط در همین مرورگر ذخیره می‌شوند.',
   'Spreadsheet grid': 'جدول صفحه‌گسترده',
   'Stored in the simulated file system': 'ذخیره‌شده در سیستم فایل شبیه‌سازی‌شده',
   'Save a copy': 'ذخیره یک نسخه',

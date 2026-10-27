@@ -166,15 +166,19 @@ export function SettingsApp({ win }: AppWindowProps) {
       notifyError(t('Choose image'), 'Please select a PNG, JPG or WEBP image.');
       return;
     }
-    if (file.size > 2_500_000) {
-      notifyError(t('Choose image'), 'Please select an image smaller than 2.5 MB.');
+    if (file.size > 1_500_000) {
+      notifyError(t('Choose image'), 'Please select an image smaller than 1.5 MB.');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      set('customWallpaper', String(reader.result));
-      set('wallpaper', 'custom');
-      notifySuccess(t('Wallpaper updated'), file.name);
+      try {
+        set('customWallpaper', String(reader.result));
+        set('wallpaper', 'custom');
+        notifySuccess(t('Wallpaper updated'), file.name);
+      } catch {
+        notifyError(t('Storage is full'), 'Try a smaller image — the wallpaper is stored in this browser.');
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -437,7 +441,7 @@ export function SettingsApp({ win }: AppWindowProps) {
                   <RotateCcw size={14} /> {t('Reset to default')}
                 </button>
               )}
-              <span className="tiny faint">{t('Images up to 2.5 MB are stored in this browser only.')}</span>
+              <span className="tiny faint">{t('Images up to 1.5 MB are stored in this browser only.')}</span>
             </div>
             <input
               ref={wallpaperRef}
