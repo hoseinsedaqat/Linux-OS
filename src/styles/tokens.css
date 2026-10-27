@@ -1,0 +1,209 @@
+/* ==================================================================
+   NOVA Linux — design tokens
+   Every colour used by the shell lives here as a CSS variable so themes
+   can swap palettes without touching component styles.
+   ================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* accent (overridden by data-accent) */
+  --accent: #3ddc97;
+  --accent-rgb: 61, 220, 151;
+  --accent-2: #34c3ff;
+  --accent-contrast: #05140d;
+  --text-on-accent: #04120b;
+
+  /* legacy aliases kept for older components */
+  --bg-0: #070b10;
+  --bg-1: #0b1118;
+  --bg-2: #101821;
+
+  /* surfaces */
+  --surface-1: #0e151d;
+  --surface-2: #131c26;
+  --surface-3: #1a2531;
+  --surface-inset: #0a1017;
+  --surface-solid: #0f1720;
+  --window-bg: #0e151d;
+  --window-header: linear-gradient(180deg, #18222d, #121a23);
+  --menu-bg: #121b24;
+  --popover-bg: rgba(16, 23, 31, 0.96);
+  --panel-bg: rgba(10, 15, 21, 0.82);
+  --panel-highlight: rgba(255, 255, 255, 0.06);
+  --input-bg: #0a1016;
+  --input-border: #26333f;
+  --code-bg: #0a1016;
+
+  /* text */
+  --text-1: #e9eef5;
+  --text-2: #b3c0d0;
+  --text-3: #7f8fa3;
+
+  /* lines */
+  --border-1: rgba(255, 255, 255, 0.08);
+  --border-2: rgba(255, 255, 255, 0.15);
+  --border-strong: rgba(255, 255, 255, 0.26);
+
+  /* states */
+  --hover: rgba(255, 255, 255, 0.065);
+  --active: rgba(255, 255, 255, 0.1);
+  --scrim: rgba(4, 7, 11, 0.6);
+
+  /* semantic */
+  --danger: #ff6b81;
+  --danger-rgb: 255, 107, 129;
+  --warning: #f2b64c;
+  --success: #3ddc97;
+  --info: #5aa9ff;
+
+  /* shape */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-window: 12px;
+  --radius-pill: 999px;
+
+  /* elevation */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 12px 32px -12px rgba(0, 0, 0, 0.65);
+  --shadow-lg: 0 30px 70px -24px rgba(0, 0, 0, 0.8);
+  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 34px 80px -30px rgba(0, 0, 0, 0.92),
+    0 8px 26px -14px rgba(0, 0, 0, 0.7);
+
+  /* type */
+  --font-ui: 'Inter Variable', 'Vazirmatn Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+  --font-scale: 1;
+
+  /* motion */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 360ms;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* layout */
+  --panel-h: 46px;
+  --titlebar-h: 38px;
+  --panel-alpha: 1;
+  --window-alpha: 1;
+  --ui-scale: 1;
+  --brightness: 1;
+  --glass-blur: 22px;
+
+  /* spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+}
+
+/* ---------------- light theme ---------------- */
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-0: #e7ecf2;
+  --bg-1: #f2f5f9;
+  --bg-2: #ffffff;
+
+  --surface-1: #ffffff;
+  --surface-2: #f5f8fb;
+  --surface-3: #eaeff5;
+  --surface-inset: #eef2f7;
+  --surface-solid: #ffffff;
+  --window-bg: #ffffff;
+  --window-header: linear-gradient(180deg, #ffffff, #f2f5f9);
+  --menu-bg: #ffffff;
+  --popover-bg: rgba(255, 255, 255, 0.97);
+  --panel-bg: rgba(250, 252, 255, 0.86);
+  --panel-highlight: rgba(255, 255, 255, 0.9);
+  --input-bg: #ffffff;
+  --input-border: #ccd6e2;
+  --code-bg: #f1f5f9;
+
+  --text-1: #0f1922;
+  --text-2: #43566b;
+  --text-3: #6b7f95;
+
+  --border-1: rgba(15, 25, 34, 0.09);
+  --border-2: rgba(15, 25, 34, 0.16);
+  --border-strong: rgba(15, 25, 34, 0.28);
+
+  --hover: rgba(15, 25, 34, 0.055);
+  --active: rgba(15, 25, 34, 0.09);
+  --scrim: rgba(30, 42, 56, 0.32);
+
+  --accent-contrast: #ffffff;
+  --text-on-accent: #ffffff;
+
+  --shadow-xs: 0 1px 2px rgba(23, 38, 55, 0.1);
+  --shadow-sm: 0 2px 8px rgba(23, 38, 55, 0.1);
+  --shadow-md: 0 12px 30px -14px rgba(23, 38, 55, 0.35);
+  --shadow-lg: 0 28px 60px -26px rgba(23, 38, 55, 0.4);
+  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 24px 60px -26px rgba(19, 34, 50, 0.42),
+    0 6px 20px -12px rgba(19, 34, 50, 0.22);
+}
+
+/* ---------------- accent palettes ---------------- */
+
+[data-accent='mint'] {
+  --accent: #3ddc97;
+  --accent-rgb: 61, 220, 151;
+  --accent-2: #34c3ff;
+  --accent-contrast: #05140d;
+}
+
+[data-accent='sky'] {
+  --accent: #4aa8ff;
+  --accent-rgb: 74, 168, 255;
+  --accent-2: #6ee7ff;
+  --accent-contrast: #04121e;
+}
+
+[data-accent='violet'] {
+  --accent: #a58bff;
+  --accent-rgb: 165, 139, 255;
+  --accent-2: #ff8bd0;
+  --accent-contrast: #100522;
+}
+
+[data-accent='amber'] {
+  --accent: #f5b747;
+  --accent-rgb: 245, 183, 71;
+  --accent-2: #ff8a5c;
+  --accent-contrast: #1c1203;
+}
+
+[data-accent='rose'] {
+  --accent: #ff7a90;
+  --accent-rgb: 255, 122, 144;
+  --accent-2: #ffb07a;
+  --accent-contrast: #210810;
+}
+
+/* Persian typography reads better with Vazirmatn in the UI slot. */
+[data-language='fa'] {
+  --font-ui: 'Vazirmatn Variable', 'Inter Variable', system-ui, sans-serif;
+}
+
+[data-reduced-motion='true'] {
+  --dur-fast: 1ms;
+  --dur: 1ms;
+  --dur-slow: 1ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 1ms;
+    --dur: 1ms;
+    --dur-slow: 1ms;
+  }
+}

@@ -1,0 +1,846 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Accessibility,
+  Bell,
+  Clock3,
+  Download,
+  Globe,
+  HardDrive,
+  Image as ImageIcon,
+  Info,
+  Keyboard,
+  Languages,
+  LayoutPanelTop,
+  Monitor,
+  Moon,
+  Palette,
+  RotateCcw,
+  Shield,
+  SlidersHorizontal,
+  Sun,
+  Type,
+  Upload,
+  Volume2,
+} from 'lucide-react';
+import type { AppWindowProps } from '@/core/apps/types';
+import type { Language, PanelPosition, SettingsState } from '@/types';
+import { useSettings } from '@/core/themes/settingsStore';
+import { WALLPAPERS, wallpaperClass } from '@/core/themes/applyTheme';
+import { useT } from '@/core/localization/i18n';
+import { useWindows } from '@/core/window-manager/windowsStore';
+import { useFiles } from '@/core/virtual-filesystem/fsStore';
+import { estimateUsage } from '@/core/persistence/db';
+import { useUiStatus } from '@/core/persistence/kvStore';
+import { useNotifications } from '@/core/notifications/notificationsStore';
+import { notify, notifyError, notifySuccess } from '@/core/notifications/notificationsStore';
+import { createBackup, backupToJson, parseBackup, restoreBackup, clearDemoData, clearEverything } from '@/services/backup';
+import { SectionHeader, Segmented, SliderRow, Toggle } from '@/components/common/Controls';
+import { ConfirmDialog } from '@/components/common/Modal';
+import { downloadText, formatBytes, cn, fileSize } from '@/utils';
+import { NovaLogo } from '@/components/common/NovaLogo';
+
+type SectionId =
+  | 'appearance'
+  | 'desktop'
+  | 'display'
+  | 'brightness'
+  | 'wallpapers'
+  | 'fonts'
+  | 'keyboard'
+  | 'language'
+  | 'datetime'
+  | 'notifications'
+  | 'storage'
+  | 'privacy'
+  | 'accessibility'
+  | 'about';
+
+const SECTIONS: Array<{ group: string; items: Array<{ id: SectionId; label: string; icon: typeof Moon }> }> = [
+  {
+    group: 'Personalization',
+    items: [
+      { id: 'appearance', label: 'Appearance', icon: Palette },
+      { id: 'desktop', label: 'Desktop & Panel', icon: LayoutPanelTop },
+      { id: 'display', label: 'Display', icon: Monitor },
+      { id: 'brightness', label: 'Brightness', icon: Sun },
+      { id: 'wallpapers', label: 'Wallpapers', icon: ImageIcon },
+      { id: 'fonts', label: 'Fonts', icon: Type },
+    ],
+  },
+  {
+    group: 'System',
+    items: [
+      { id: 'keyboard', label: 'Keyboard', icon: Keyboard },
+      { id: 'language', label: 'Language', icon: Languages },
+      { id: 'datetime', label: 'Date & Time', icon: Clock3 },
+      { id: 'notifications', label: 'Notifications', icon: Bell },
+      { id: 'storage', label: 'Storage', icon: HardDrive },
+      { id: 'privacy', label: 'Privacy', icon: Shield },
+      { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
+      { id: 'about', label: 'About', icon: Info },
+    ],
+  },
+];
+
+const ACCENTS: Array<{ id: SettingsState['accent']; color: string; label: string }> = [
+  { id: 'mint', color: '#3ddc97', label: 'Mint' },
+  { id: 'sky', color: '#4aa8ff', label: 'Sky' },
+  { id: 'violet', color: '#a586ff', label: 'Violet' },
+  { id: 'amber', color: '#f2b64c', label: 'Amber' },
+  { id: 'rose', color: '#ff7a90', label: 'Rose' },
+];
+
+const KEYBOARD_LAYOUTS = [
+  { value: 'us', label: 'English (US)' },
+  { value: 'uk', label: 'English (UK)' },
+  { value: 'de', label: 'Deutsch' },
+  { value: 'ir', label: 'فارسی (Iran)' },
+];
+
+export function SettingsApp({ win }: AppWindowProps) {
+  const t = useT();
+  const settings = useSettings();
+  const set = useSettings((state) => state.set);
+  const reset = useSettings((state) => state.reset);
+  const nodes = useFiles((state) => state.nodes);
+  const filePickerRef = useRef<HTMLInputElement | null>(null);
+  const wallpaperRef = useRef<HTMLInputElement | null>(null);
+  const [section, setSection] = useState<SectionId>((win.payload?.section as SectionId) ?? 'appearance');
+  const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
+  const [confirm, setConfirm] = useState<null | 'clear-demo' | 'clear-all'>(null);
+  const [busy, setBusy] = useState(false);
+  const storageWarning = useUiStatus((state) => state.storageWarning);
+  const notificationsEnabled = useSettings((state) => state.notificationsEnabled);
+
+  useEffect(() => {
+    if (win.payload?.section) setSection(win.payload.section as SectionId);
+  }, [win.payload?.section]);
+
+  useEffect(() => {
+    void estimateUsage().then(setUsage);
+  }, [nodes]);
+
+  const fileStats = useMemo(() => {
+    const list = Object.values(nodes);
+    return {
+      files: list.filter((node) => node.kind !== 'folder' && !node.trashed).length,
+      folders: list.filter((node) => node.kind === 'folder').length,
+      bytes: list.reduce((acc, node) => acc + (node.kind === 'folder' ? 0 : fileSize(node)), 0),
+      trash: list.filter((node) => node.trashed).length,
+    };
+  }, [nodes]);
+
+  const exportData = async () => {
+    setBusy(true);
+    try {
+      const backup = await createBackup();
+      downloadText(
+        `nova-linux-backup-${new Date().toISOString().slice(0, 10)}.json`,
+        backupToJson(backup),
+        'application/json',
+      );
+      notifySuccess(t('Backup downloaded'), `${backup.files.length} files · v${backup.version}`);
+    } catch (error) {
+      notifyError(t('Invalid backup file'), error instanceof Error ? error.message : '');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const importData = async (file: File) => {
+    setBusy(true);
+    try {
+      const text = await file.text();
+      const backup = parseBackup(text);
+      await restoreBackup(backup);
+      notifySuccess(t('Backup restored'), `${backup.files.length} files`);
+    } catch (error) {
+      notifyError(t('Invalid backup file'), error instanceof Error ? error.message : '');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickWallpaper = (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      notifyError(t('Choose image'), 'Please select a PNG, JPG or WEBP image.');
+      return;
+    }
+    if (file.size > 2_500_000) {
+      notifyError(t('Choose image'), 'Please select an image smaller than 2.5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      set('customWallpaper', String(reader.result));
+      set('wallpaper', 'custom');
+      notifySuccess(t('Wallpaper updated'), file.name);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      notifyError(t('Fullscreen'), 'Your browser blocked the fullscreen request.');
+    }
+  };
+
+  const renderSection = () => {
+    switch (section) {
+      case 'appearance':
+        return (
+          <>
+            <SectionHeader title={t('Appearance')} description={t('Theme, accent colour and window styling for the whole desktop.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Themes')}</div>
+                  <div className="settings-row__desc">{t('Choose how NOVA Linux looks.')}</div>
+                </div>
+                <Segmented
+                  value={settings.theme}
+                  onChange={(value) => set('theme', value)}
+                  options={[
+                    { value: 'dark', label: t('Dark Mode'), icon: Moon },
+                    { value: 'light', label: t('Light Mode'), icon: Sun },
+                  ]}
+                />
+              </div>
+              <div className="settings-row settings-row--stack">
+                <div className="settings-row__title">{t('Accent color')}</div>
+                <div className="settings-swatches">
+                  {ACCENTS.map((accent) => (
+                    <button
+                      key={accent.id}
+                      className={cn('settings-swatch', settings.accent === accent.id && 'is-active')}
+                      style={{ background: accent.color }}
+                      onClick={() => set('accent', accent.id)}
+                      title={accent.label}
+                      aria-label={accent.label}
+                    />
+                  ))}
+                </div>
+              </div>
+              <SliderRow
+                label={t('Window transparency')}
+                value={Math.round(settings.windowTransparency * 100)}
+                min={70}
+                max={100}
+                onChange={(value) => set('windowTransparency', value / 100)}
+                format={(value) => `${value}%`}
+              />
+              <SliderRow
+                label={t('Corner radius')}
+                value={settings.cornerRadius}
+                min={0}
+                max={26}
+                onChange={(value) => set('cornerRadius', value)}
+                format={(value) => `${value}px`}
+              />
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Reduce motion')}</div>
+                  <div className="settings-row__desc">{t('Uses minimal transitions across the desktop.')}</div>
+                </div>
+                <Toggle checked={settings.reduceMotion} onChange={(value) => set('reduceMotion', value)} label={t('Reduce motion')} />
+              </div>
+            </div>
+          </>
+        );
+
+      case 'desktop':
+        return (
+          <>
+            <SectionHeader title={t('Desktop & Panel')} description={t('Position and style the main panel. Preferences are stored locally.')} />
+            <div className="settings-card">
+              <div className="settings-row settings-row--stack">
+                <div className="settings-row__title">{t('Panel position')}</div>
+                <Segmented
+                  value={settings.panelPosition}
+                  onChange={(value: PanelPosition) => set('panelPosition', value)}
+                  options={[
+                    { value: 'bottom', label: t('Bottom') },
+                    { value: 'top', label: t('Top') },
+                    { value: 'left', label: t('Left') },
+                    { value: 'right', label: t('Right') },
+                  ]}
+                />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Panel size')}</div>
+                  <div className="settings-row__desc">{t('Compact, normal or large.')}</div>
+                </div>
+                <Segmented
+                  size="sm"
+                  value={settings.panelSize}
+                  onChange={(value) => set('panelSize', value)}
+                  options={[
+                    { value: 'compact', label: t('Compact') },
+                    { value: 'normal', label: t('Normal') },
+                    { value: 'large', label: t('Large') },
+                  ]}
+                />
+              </div>
+              <SliderRow
+                label={t('Panel opacity')}
+                value={Math.round(settings.panelOpacity * 100)}
+                min={40}
+                max={100}
+                onChange={(value) => set('panelOpacity', value / 100)}
+                format={(value) => `${value}%`}
+              />
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Auto-hide panel')}</div>
+                  <div className="settings-row__desc">{t('Move the pointer to the screen edge to reveal the panel.')}</div>
+                </div>
+                <Toggle checked={settings.panelAutoHide} onChange={(value) => set('panelAutoHide', value)} label={t('Auto-hide panel')} />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Show app names in panel')}</div>
+                  <div className="settings-row__desc">{t('Display labels next to pinned apps.')}</div>
+                </div>
+                <Toggle checked={settings.dockShowLabels} onChange={(value) => set('dockShowLabels', value)} label={t('Show app names in panel')} />
+              </div>
+            </div>
+          </>
+        );
+
+      case 'display':
+        return (
+          <>
+            <SectionHeader title={t('Display')} description={t('The simulated desktop canvas, interface scale and text size.')} />
+            <div className="settings-card">
+              <div className="settings-row settings-row--stack">
+                <div className="settings-row__title">{t('Virtual resolution')}</div>
+                <div className="settings-row__desc" style={{ marginBottom: 6 }}>
+                  {t('This changes the size of the simulated desktop canvas, not your real display.')}
+                </div>
+                <Segmented
+                  size="sm"
+                  value={settings.virtualResolution}
+                  onChange={(value) => set('virtualResolution', value)}
+                  options={[
+                    { value: 'auto', label: 'Auto' },
+                    { value: '1280x720', label: '1280 × 720' },
+                    { value: '1440x900', label: '1440 × 900' },
+                    { value: '1920x1080', label: '1920 × 1080' },
+                  ]}
+                />
+              </div>
+              <SliderRow
+                label={t('UI scale')}
+                value={settings.uiScale}
+                min={85}
+                max={120}
+                onChange={(value) => set('uiScale', value)}
+                format={(value) => `${value}%`}
+              />
+              <SliderRow
+                label={t('Text size')}
+                value={settings.fontSize}
+                min={90}
+                max={115}
+                onChange={(value) => set('fontSize', value)}
+                format={(value) => `${value}%`}
+              />
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Fullscreen')}</div>
+                  <div className="settings-row__desc">{t('Enter fullscreen')}</div>
+                </div>
+                <button className="btn btn--sm" onClick={toggleFullscreen}>
+                  {document.fullscreenElement ? t('Exit fullscreen') : t('Enter fullscreen')}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+
+      case 'brightness':
+        return (
+          <>
+            <SectionHeader title={t('Brightness')} description={t('Dim the simulated desktop. This does not change your monitor backlight.')} />
+            <div className="settings-card">
+              <SliderRow
+                label={t('Brightness')}
+                value={settings.brightness}
+                onChange={(value) => set('brightness', value)}
+                format={(value) => `${value}%`}
+                icon={Sun}
+              />
+              <SliderRow
+                label={t('Volume')}
+                value={settings.volume}
+                onChange={(value) => set('volume', value)}
+                format={(value) => `${value}%`}
+                icon={Volume2}
+              />
+              <div className="settings-preview" style={{ filter: `brightness(${Math.max(0.25, settings.brightness / 100)})` }}>
+                <div className="settings-preview__bar" />
+                <div className="settings-preview__text">{t('Preview')}</div>
+              </div>
+            </div>
+          </>
+        );
+
+      case 'wallpapers':
+        return (
+          <>
+            <SectionHeader title={t('Wallpapers')} description={t('Pick a background for the desktop and login screen.')} />
+            <div className="wallpaper-grid">
+              {WALLPAPERS.map((wallpaper) => (
+                <button
+                  key={wallpaper.id}
+                  className={cn('wallpaper-card', settings.wallpaper === wallpaper.id && 'is-active')}
+                  onClick={() => {
+                    set('wallpaper', wallpaper.id);
+                    notify(t('Wallpaper updated'), { body: wallpaper.name, kind: 'success' });
+                  }}
+                >
+                  <span className={cn('wallpaper-card__preview', wallpaperClass(wallpaper.id))} />
+                  <span className="wallpaper-card__name">{wallpaper.name}</span>
+                  <span className="wallpaper-card__desc">{wallpaper.description}</span>
+                </button>
+              ))}
+              {settings.customWallpaper && (
+                <button
+                  className={cn('wallpaper-card', settings.wallpaper === 'custom' && 'is-active')}
+                  onClick={() => set('wallpaper', 'custom')}
+                >
+                  <span
+                    className="wallpaper-card__preview"
+                    style={{ backgroundImage: `url(${settings.customWallpaper})`, backgroundSize: 'cover' }}
+                  />
+                  <span className="wallpaper-card__name">{t('Custom image')}</span>
+                  <span className="wallpaper-card__desc">{t('Choose image')}</span>
+                </button>
+              )}
+            </div>
+            <div className="row" style={{ gap: 8, marginTop: 14 }}>
+              <button className="btn" onClick={() => wallpaperRef.current?.click()}>
+                <Upload size={14} /> {t('Choose image')}
+              </button>
+              {settings.wallpaper === 'custom' && (
+                <button
+                  className="btn"
+                  onClick={() => {
+                    set('wallpaper', 'wallpaper-aurora');
+                    set('customWallpaper', null);
+                  }}
+                >
+                  <RotateCcw size={14} /> {t('Reset to default')}
+                </button>
+              )}
+              <span className="tiny faint">{t('Images up to 2.5 MB are stored in this browser only.')}</span>
+            </div>
+            <input
+              ref={wallpaperRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) pickWallpaper(file);
+                event.target.value = '';
+              }}
+            />
+          </>
+        );
+
+      case 'fonts':
+        return (
+          <>
+            <SectionHeader title={t('Fonts')} description="Inter for Latin, Vazirmatn for Persian. Both ship with the app and work offline." />
+            <div className="settings-card">
+              <div className="font-sample" style={{ fontFamily: 'var(--font-ui)' }}>
+                <div className="font-sample__label">Inter Variable</div>
+                <div className="font-sample__text">The quick brown fox jumps over the lazy dog — 0123456789</div>
+              </div>
+              <div className="font-sample" style={{ direction: 'rtl' }}>
+                <div className="font-sample__label">Vazirmatn Variable</div>
+                <div className="font-sample__text">سرعت و دقت در محیط کاربری — ۰۱۲۳۴۵۶۷۸۹</div>
+              </div>
+              <SliderRow
+                label={t('Text size')}
+                value={settings.fontSize}
+                min={90}
+                max={115}
+                onChange={(value) => set('fontSize', value)}
+                format={(value) => `${value}%`}
+              />
+            </div>
+          </>
+        );
+
+      case 'keyboard':
+        return (
+          <>
+            <SectionHeader title={t('Keyboard')} description={t('Layout selection is simulated for this demo session.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Keyboard layout')}</div>
+                  <div className="settings-row__desc">{t('Used by the login screen and shown here for reference.')}</div>
+                </div>
+                <select
+                  className="select"
+                  style={{ width: 200 }}
+                  value={settings.keyboardLayout}
+                  onChange={(event) => set('keyboardLayout', event.target.value as SettingsState['keyboardLayout'])}
+                >
+                  {KEYBOARD_LAYOUTS.map((layout) => (
+                    <option key={layout.value} value={layout.value}>
+                      {layout.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="settings-note">
+                {t('Shortcuts')}: Ctrl/Cmd + K — {t('Applications')} · Ctrl + Alt + T — {t('Terminal')} · Alt + Tab — {t('switch windows')} · Esc — {t('Close')}
+              </div>
+            </div>
+          </>
+        );
+
+      case 'language':
+        return (
+          <>
+            <SectionHeader title={t('Language & Region')} description={t('The whole desktop switches language and text direction.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Language')}</div>
+                  <div className="settings-row__desc">{t('Right-to-left layout')}: fa</div>
+                </div>
+                <Segmented
+                  value={settings.language}
+                  onChange={(value: Language) => set('language', value)}
+                  options={[
+                    { value: 'en', label: 'English', icon: Globe },
+                    { value: 'fa', label: 'فارسی', icon: Languages },
+                  ]}
+                />
+              </div>
+              <div className="settings-note">
+                {t('After changing the language, menus, dates and app titles switch immediately. Numbers in the accounting app always use the Persian locale.')}
+              </div>
+            </div>
+          </>
+        );
+
+      case 'datetime':
+        return (
+          <>
+            <SectionHeader title={t('Date & Time')} description={t('Clock format for the panel and apps.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('24-hour clock')}</div>
+                  <div className="settings-row__desc">14:05 vs 02:05 PM</div>
+                </div>
+                <Toggle checked={settings.clock24h} onChange={(value) => set('clock24h', value)} label={t('24-hour clock')} />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Show seconds')}</div>
+                  <div className="settings-row__desc">{t('Adds seconds to the panel clock.')}</div>
+                </div>
+                <Toggle checked={settings.showSeconds} onChange={(value) => set('showSeconds', value)} label={t('Show seconds')} />
+              </div>
+              <div className="settings-note">
+                {t('The clock follows your device time zone. There is no server time in this simulator.')}
+              </div>
+            </div>
+          </>
+        );
+
+      case 'notifications':
+        return (
+          <>
+            <SectionHeader title={t('Notifications')} description={t('Control in-desktop notifications.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Notifications enabled')}</div>
+                  <div className="settings-row__desc">{t('Turn all simulator notifications on or off.')}</div>
+                </div>
+                <Toggle
+                  checked={notificationsEnabled}
+                  onChange={(value) => set('notificationsEnabled', value)}
+                  label={t('Notifications')}
+                />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Do Not Disturb')}</div>
+                  <div className="settings-row__desc">{t('Silence toast pop-ups, keep the history.')}</div>
+                </div>
+                <Toggle checked={settings.dnd} onChange={(value) => set('dnd', value)} label={t('Do Not Disturb')} />
+              </div>
+              <button
+                className="btn btn--sm"
+                onClick={() => {
+                  useNotifications.getState().clearAll();
+                  notifySuccess(t('Notifications'), t('Clear all'));
+                }}
+              >
+                {t('Clear all')}
+              </button>
+            </div>
+          </>
+        );
+
+      case 'storage':
+        return (
+          <>
+            <SectionHeader title={t('Storage')} description={t('Your data lives in this browser (IndexedDB). Nothing is uploaded.')} />
+            {storageWarning && (
+              <div className="settings-note" style={{ borderColor: 'rgba(242,182,76,0.4)' }}>
+                {t('Browser storage is unavailable. Changes will only last until you close this tab.')}
+              </div>
+            )}
+            <div className="settings-card">
+              <div className="settings-stats">
+                <div>
+                  <span className="settings-stat__value">{fileStats.files}</span>
+                  <span className="settings-stat__label">{t('Files')}</span>
+                </div>
+                <div>
+                  <span className="settings-stat__value">{fileStats.folders}</span>
+                  <span className="settings-stat__label">{t('Folders')}</span>
+                </div>
+                <div>
+                  <span className="settings-stat__value">{formatBytes(fileStats.bytes)}</span>
+                  <span className="settings-stat__label">{t('Content size')}</span>
+                </div>
+                <div>
+                  <span className="settings-stat__value">{usage ? formatBytes(usage.usage) : '—'}</span>
+                  <span className="settings-stat__label">{t('Storage used')}</span>
+                </div>
+              </div>
+              <div className="settings-meter">
+                <span style={{ width: `${usage && usage.quota ? Math.min(100, (usage.usage / usage.quota) * 100) : 4}%` }} />
+              </div>
+              <div className="settings-note">{t('Your files are stored in IndexedDB on this device. They are never uploaded to a server and are not synced between devices.')}</div>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn--primary" onClick={exportData} disabled={busy}>
+                  <Download size={14} /> {t('Export User Data')}
+                </button>
+                <button className="btn" onClick={() => filePickerRef.current?.click()} disabled={busy}>
+                  <Upload size={14} /> {t('Import User Data')}
+                </button>
+                <input
+                  ref={filePickerRef}
+                  type="file"
+                  accept="application/json,.json"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void importData(file);
+                    event.target.value = '';
+                  }}
+                />
+              </div>
+            </div>
+            <div className="settings-card settings-card--danger">
+              <div className="settings-row__title" style={{ color: 'var(--danger)' }}>
+                {t('Danger zone')}
+              </div>
+              <p className="settings-row__desc">{t('This will delete all files, documents and settings stored in this browser.')}</p>
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn--danger" onClick={() => setConfirm('clear-demo')}>
+                  {t('Clear Demo Data')}
+                </button>
+                <button className="btn btn--danger" onClick={() => setConfirm('clear-all')}>
+                  {t('Clear everything')}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+
+      case 'privacy':
+        return (
+          <>
+            <SectionHeader title={t('Privacy')} description={t('Everything stays in this browser.')} />
+            <div className="settings-card">
+              <ul className="settings-list">
+                <li>{t('No account is required and no password is stored.')}</li>
+                <li>{t('No analytics, tracking pixels or third-party services are loaded.')}</li>
+                <li>{t('Files, notes and accounting records are stored in IndexedDB for this origin only.')}</li>
+                <li>{t('The Browser app loads external pages directly in an iframe — those sites see your IP address as usual.')}</li>
+                <li>{t('Clearing your browser data removes the simulator state permanently.')}</li>
+              </ul>
+              <div className="settings-note">
+                {t('Data stored only in this browser')}
+              </div>
+            </div>
+          </>
+        );
+
+      case 'accessibility':
+        return (
+          <>
+            <SectionHeader title={t('Accessibility')} description={t('Comfort options for motion, size and contrast.')} />
+            <div className="settings-card">
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Reduce motion')}</div>
+                  <div className="settings-row__desc">{t('Disables window, menu and boot animations.')}</div>
+                </div>
+                <Toggle checked={settings.reduceMotion} onChange={(value) => set('reduceMotion', value)} label={t('Reduce motion')} />
+              </div>
+              <SliderRow
+                label={t('Text size')}
+                value={settings.fontSize}
+                min={90}
+                max={115}
+                onChange={(value) => set('fontSize', value)}
+                format={(value) => `${value}%`}
+              />
+              <SliderRow
+                label={t('UI scale')}
+                value={settings.uiScale}
+                min={85}
+                max={120}
+                onChange={(value) => set('uiScale', value)}
+                format={(value) => `${value}%`}
+              />
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('High contrast text')}</div>
+                  <div className="settings-row__desc">{t('Use the light theme for maximum contrast.')}</div>
+                </div>
+                <button className="btn btn--sm" onClick={() => set('theme', settings.theme === 'light' ? 'dark' : 'light')}>
+                  {settings.theme === 'light' ? t('Dark Mode') : t('Light Mode')}
+                </button>
+              </div>
+              <div className="settings-note">
+                {t('Keyboard focus rings are always visible. All dialogs close with the Escape key.')}
+              </div>
+            </div>
+          </>
+        );
+
+      case 'about':
+      default:
+        return (
+          <>
+            <SectionHeader title={t('About')} description={t('About this simulator')} />
+            <div className="settings-card about">
+              <div className="about__head">
+                <NovaLogo size={56} />
+                <div>
+                  <h2 className="about__title">NOVA Linux</h2>
+                  <div className="small muted">Web Desktop Experience · {t('Simulator version')} 1.0.0</div>
+                </div>
+              </div>
+              <p className="small muted" style={{ lineHeight: 1.7 }}>
+                {t('NOVA Linux is a web-based desktop experience. It does not run a real Linux kernel; every system service, file and process you see is simulated in your browser.')}
+              </p>
+              <div className="about__grid">
+                <div>
+                  <div className="settings-row__title">{t('Technologies')}</div>
+                  <ul className="settings-list">
+                    <li>React + TypeScript</li>
+                    <li>Vite</li>
+                    <li>Zustand</li>
+                    <li>Framer Motion</li>
+                    <li>Lucide icons</li>
+                    <li>IndexedDB · localStorage</li>
+                  </ul>
+                </div>
+                <div>
+                  <div className="settings-row__title">{t('Limitations')}</div>
+                  <ul className="settings-list">
+                    <li>No real kernel, processes or hardware access.</li>
+                    <li>Network, battery and brightness are simulations.</li>
+                    <li>Embedded websites may refuse to load in an iframe.</li>
+                    <li>Data is local to this browser and origin.</li>
+                    <li>DOCX import/export is not supported.</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="settings-note">
+                {t('Built as an open, front-end-only project. No backend, no API keys, no analytics.')}
+              </div>
+              <div className="row" style={{ gap: 8 }}>
+                <button className="btn" onClick={reset}>
+                  <RotateCcw size={14} /> {t('Reset to default')}
+                </button>
+                <button className="btn btn--ghost" onClick={() => useWindows.getState().openApp('welcome')}>
+                  <Info size={14} /> {t('Start tour')}
+                </button>
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
+  return (
+    <div className="app settings-app">
+      <aside className="settings-app__nav">
+        <div className="settings-app__search">
+          <SlidersHorizontal size={13} />
+          <span className="small faint">NOVA Linux 1.0</span>
+        </div>
+        {SECTIONS.map((group) => (
+          <div key={group.group} className="settings-app__group">
+            <div className="settings-app__group-title">{group.group}</div>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  className={cn('settings-app__nav-item', section === item.id && 'is-active')}
+                  onClick={() => setSection(item.id)}
+                >
+                  <Icon size={15} />
+                  <span className="truncate">{t(item.label)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </aside>
+
+      <main className="settings-app__content">{renderSection()}</main>
+
+      <ConfirmDialog
+        open={confirm === 'clear-demo'}
+        title={t('Clear Demo Data')}
+        message={`${t('This will delete all files, documents and settings stored in this browser.')} ${t('This action cannot be undone.')}`}
+        confirmLabel={t('Clear Demo Data')}
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          void clearDemoData().then(() => {
+            setConfirm(null);
+            notifySuccess(t('Clear Demo Data'), t('Demo data restored'));
+          });
+        }}
+      />
+      <ConfirmDialog
+        open={confirm === 'clear-all'}
+        title={t('Clear everything')}
+        message={`${t('This will delete all files, documents and settings stored in this browser.')} ${t('This action cannot be undone.')}`}
+        confirmLabel={t('Clear everything')}
+        danger
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          void clearEverything().then(() => {
+            setConfirm(null);
+            notifySuccess(t('Clear everything'), t('Settings reset to default'));
+          });
+        }}
+      />
+    </div>
+  );
+}
