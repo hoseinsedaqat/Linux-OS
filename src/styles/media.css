@@ -761,3 +761,103 @@
     transition: none;
   }
 }
+
+/* ==================================================================
+   Music / Photos / Weather — small-screen refinements
+   ================================================================== */
+
+@media (max-width: 860px) {
+  .photos__bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .photos__actions {
+    flex-wrap: wrap;
+  }
+
+  .weather__hero {
+    gap: 10px;
+    padding: 13px 14px;
+  }
+
+  .weather__hero-icon {
+    width: 84px;
+    height: 84px;
+  }
+
+  .weather__temp {
+    font-size: calc(38px * var(--font-scale));
+  }
+}
+
+@media (max-width: 640px) {
+  .music__stage {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .music__art {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+  }
+
+  .music__visualizer {
+    height: 34px;
+  }
+
+  .music__hint {
+    text-align: start;
+  }
+
+  .weather__body {
+    padding: 10px 10px 14px;
+    gap: 10px;
+  }
+
+  .weather__hero {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+  }
+
+  .weather__hero-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+  }
+
+  .weather__metrics {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+  }
+
+  .weather__day {
+    grid-template-columns: 50px 16px 1fr 46px;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .photos__figure img {
+    max-height: 260px;
+  }
+
+  .photos__strip {
+    padding: 7px 8px;
+  }
+
+  .photos__thumb {
+    width: 52px;
+    height: 40px;
+  }
+
+  .photos__info {
+    inset-inline: 8px;
+    width: auto;
+  }
+
+  .photos__nav {
+    width: 28px;
+    height: 28px;
+  }
+}

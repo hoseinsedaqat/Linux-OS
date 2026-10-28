@@ -541,3 +541,110 @@
   color: var(--text-on-accent);
   box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.35);
 }
+
+/* ==================================================================
+   Games — responsive behaviour
+   The hub collapses to a single column, the toolbars wrap and the boards
+   scale down so every game stays playable down to phone widths.
+   ================================================================== */
+
+@media (max-width: 860px) {
+  .games,
+  .game {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .games__head {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .games__grid {
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+  }
+
+  .games__card {
+    padding: 12px;
+  }
+
+  .mines__board {
+    --mines-cell: 22px;
+  }
+
+  .g2048__board {
+    width: min(100%, 340px);
+  }
+
+  .snake__grid {
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .games__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .games__how {
+    font-size: 10px;
+  }
+
+  .game__bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .game__bar-actions {
+    justify-content: flex-start;
+  }
+
+  .game__chip,
+  .game__btn {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  .game__hint {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .mines__board {
+    --mines-cell: 18px;
+    gap: 2px;
+    padding: 5px;
+    overflow: auto;
+  }
+
+  .mines__cell {
+    font-size: 10px;
+  }
+
+  .ttt__board {
+    width: min(100%, 260px);
+  }
+
+  .ttt__cell {
+    font-size: calc(26px * var(--font-scale));
+  }
+
+  .snake__controls {
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .games__badge {
+    align-self: flex-start;
+  }
+
+  .mines__board {
+    --mines-cell: 15px;
+  }
+}

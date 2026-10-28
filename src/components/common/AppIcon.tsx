@@ -5,6 +5,7 @@ import {
   Calculator,
   CalendarDays,
   CloudSun,
+  Code2,
   Folder,
   FolderOpen,
   Gamepad2,
@@ -56,6 +57,7 @@ const ICONS: Record<string, LucideIcon> = {
   music: Music,
   image: ImageIcon,
   'cloud-sun': CloudSun,
+  code: Code2,
 };
 
 export function iconForApp(appId: AppId): LucideIcon {

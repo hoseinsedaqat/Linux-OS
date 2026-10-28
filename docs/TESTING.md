@@ -18,8 +18,14 @@ path a user hits when a browser blocks storage.
 | `tests/apps.test.tsx` | Terminal command execution and `sudo` refusal, Notes creation + autosave into the VFS, Files folder creation through the prompt dialog, Accounting customer creation + required-field validation, Settings language switch and reduced-motion toggle. |
 | `tests/desktop.test.tsx` | Desktop surface: an icon for every installed app, column layout contract, adding/removing app shortcuts from the desktop and app-menu context menus, files created from the desktop appearing immediately, slider track fill/aria-value sync, shared volume/brightness OSD. |
 | `tests/interactions.test.tsx` | Calculator keypad evaluation, Browser navigation incl. the iframe fallback and the explicit blocked-host screen, Software Center install/uninstall, Calendar event creation, Trash restore from the UI, every Accounting tab and every Settings section rendering, accent/theme persistence. |
+| `tests/shell.test.ts` | Virtual desktops and window placement, tiling presets, palette command list, high-contrast + theme studio helpers. |
+| `tests/games.test.ts` | Minesweeper safe first click, mine counts, flags/chording, win & loss; 2048 merge and lock rules; snake movement, self-collision and speed curve; minimax never losing; best-score storage. |
+| `tests/search.test.ts` | Provider URLs (keyless, CORS), result de-duplication and grouping, per-provider `ok`/`empty`/`error` mapping, total-failure state, five-minute cache. |
+| `tests/code.test.ts` | Language detection, the tokenizer (keywords, property names, strings, comments), find-in-file, indent/outdent, caret maths, `fileAppFor` routing for code extensions. |
+| `tests/responsive.test.ts` | Breakpoint contract per stylesheet, no over-wide fixed widths, fluid card grids, PWA/viewport meta, reduced-motion coverage, Code's mobile overlay. |
+| `tests/a11y.test.tsx` | Unnamed controls, unlabelled dialogs, images without `alt`, and the keyboard-only palette path. |
 
-## The 30-point behaviour checklist
+## The 61-point behaviour checklist
 
 Executed manually against a **production build** (`npm run build && npm run preview`) before each
 release. "✔" marks points that are also covered by automated tests.
@@ -88,11 +94,27 @@ release. "✔" marks points that are also covered by automated tests.
 47. No critical console errors during the checklist; no `NaN`, no missing-key warnings.
 48. GitHub Pages: build with `VITE_BASE=/<repo>/`, every asset resolves under the sub-path, deep reloads work.
 
+### Code (editor)
+49. Open **Code** from the launcher: `~/Projects` lists `hello.ts`, `theme.css`, `notes.md` and `data.json`; clicking a file opens a tab with line numbers, a gutter and highlighted syntax.
+50. Type in the editor: the tab shows the dirty dot, the status bar switches from `Saved` to `Unsaved changes`, and `Ctrl+S` clears it.
+51. `Ctrl+S`, then open the same file in **Files**: the new text is there (both read the same virtual FS).
+52. `Ctrl+F` reports the match count, `Enter`/`Shift+Enter` wrap through the matches, `Escape` closes the panel.
+53. Select three lines and press `Tab` (indents all three), then `Shift+Tab` (restores them).
+54. Unsupported property names are not highlighted: `obj.return` keeps `return` in the identifier colour.
+55. Close a tab with unsaved changes: a confirmation appears; cancel keeps the tab and the text.
+56. Narrow the window below 760 px: the explorer becomes an overlay and the editor keeps a usable width.
+
+### Responsive contract
+57. At 1440 px, 1024 px, 834 px, 768 px, 640 px, 430 px and 390 px wide, no surface shows a horizontal scrollbar and nothing is clipped: desktop icons, panel, Applications menu, palette, Files, Games, Media apps, Settings.
+58. ≤ 900 px the panel compacts and tray labels disappear; ≤ 860 px the Files sidebar collapses and the Games grid becomes one column; ≤ 640 px game boards rescale and card grids reflow; ≤ 420 px the palette and sheets go edge to edge.
+59. Every tap target stays ≥ 32 px, and the whole UI stays usable in landscape phone orientation.
+60. With *reduce motion* on, no sheet, window, dialog or the session intro animates (only opacity changes remain).
+
 ## Automated gates
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: logic, apps, shell, games, weather, a11y
+npm run test        # Vitest: 194 tests — logic, apps, shell, games, search, code, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -109,3 +131,12 @@ grep -rho '"/assets/[^"]*"' dist/assets/*.js | head
 ```
 
 The second command should print nothing; the first should only show paths prefixed with the base.
+
+## Round-3 additions to the automated suites
+
+- `tests/code.test.ts` (17) — language detection, tokenizer (keywords, strings, comments, property
+  names), find-in-file, indentation, caret maths, `fileAppFor` routing for code extensions.
+- `tests/responsive.test.ts` (10) — asserts every documented breakpoint still exists, no new sheet
+  uses a fixed width wider than a phone, card grids are fluid, the PWA/viewport meta tags are in
+  place, reduced-motion coverage exists in every animated sheet, and Code's mobile overlay rules
+  are present.

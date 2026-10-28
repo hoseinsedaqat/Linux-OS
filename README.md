@@ -1,222 +1,223 @@
-# NOVA Linux — Web Desktop Experience
+<div align="center">
 
-A complete, interactive **Linux-style desktop environment that runs entirely in the browser**.
-It boots, asks you to sign in, restores your workspace and lets you actually *work* inside it:
-write documents, build spreadsheets, keep a Persian bookkeeping ledger, browse, take notes and
-manage a virtual file system that survives a page reload.
+# NOVA Linux
 
-> **This is a simulator.** NOVA Linux is a web application that imitates a desktop OS. It does not
-> run a Linux kernel, cannot access your real files, your hardware or the network on your behalf,
-> and it never asks for or stores a real password.
+**A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
-- **Stack:** React 18 + TypeScript (strict) + Vite 5, Zustand, Framer Motion (used sparingly),
-  Lucide icons, hand-written CSS with design tokens, IndexedDB + LocalStorage persistence.
-- **No backend, no API keys, no external services, no tracking.** Everything is client-side.
-- **GitHub Pages ready** — builds with the correct sub-path base and deploys from Actions.
+[![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
+[![Tests](https://img.shields.io/badge/tests-194%20passing-3ddc97?style=for-the-badge)](#testing)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
+[![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
+[![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
+
+Boot splash · login · window manager · 20 working applications · four virtual desktops · a real
+file system that survives a reload · live search · an installable offline PWA.
+
+**No backend. No accounts. No API keys. No tracking. Nothing leaves your browser** except the
+public APIs the search engine and the weather app query on your behalf.
+
+[**Open the live demo →**](https://hoseinsedaqat.github.io/Linux-OS/)
+
+</div>
+
+![NOVA Linux desktop with the Files and Code windows open](docs/screenshots/01-desktop.png)
 
 ---
 
 ## Table of contents
 
-1. [Screens](#screens)
-2. [Feature tour](#feature-tour)
-3. [Quick start](#quick-start)
-4. [Deploying to GitHub Pages](#deploying-to-github-pages)
-5. [Project structure](#project-structure)
-6. [Persistence model](#persistence-model)
-7. [Keyboard shortcuts](#keyboard-shortcuts)
-8. [Testing](#testing)
-9. [Honest limitations](#honest-limitations)
-10. [Design notes](#design-notes)
+- [What this is (and is not)](#what-this-is-and-is-not)
+- [Highlights](#highlights)
+- [Screens](#screens)
+- [Applications](#applications)
+- [Code — the built-in editor](#code--the-built-in-editor)
+- [Responsive by contract](#responsive-by-contract)
+- [The shell](#the-shell)
+- [Search that is actually real](#search-that-is-actually-real)
+- [Quick start](#quick-start)
+- [Deploying to GitHub Pages](#deploying-to-github-pages)
+- [Project structure](#project-structure)
+- [Persistence model](#persistence-model)
+- [Tech stack](#tech-stack)
+- [Keyboard shortcuts](#keyboard-shortcuts)
+- [Testing](#testing)
+- [Honest limitations](#honest-limitations)
+- [Regenerating the illustrations](#regenerating-the-illustrations)
 
 ---
 
-## Preview
+## What this is (and is not)
 
-![Schematic of the NOVA Linux desktop](docs/preview.svg)
+NOVA Linux is a **desktop environment simulator**: a web application that behaves like a small,
+polished Linux distribution. It has a boot sequence, a login screen, a window manager, a panel with
+workspaces, twenty applications, a virtual file system persisted in IndexedDB, and a light/dark
+theme engine with a custom accent colour studio.
 
-*Schematic of the desktop built from the project's own design tokens (wallpaper gradients, panel,
-window chrome, icons) — not a screenshot. Open the live demo for the real thing.*
+It is **not** a Linux kernel, a VM, or a remote desktop. Nothing is executed natively, no real file
+or hardware is touched, and no password is ever collected or stored. Every place where that
+distinction matters — the terminal, the system monitor, battery/network readings, brightness — says
+so plainly in the UI instead of pretending.
+
+What *is* real: the editing and saving of documents, the spreadsheet engine, the games' rules and
+scores, the drawing and layout of the shell, the file system, the service-worker cache, and the
+network calls the search engine and weather app make to public, keyless, CORS-enabled APIs.
+
+---
+
+## Highlights
+
+- **A shell that feels like an OS, not a dashboard.** Boot POST table → login → animated session
+  intro → floating glass dock, edge tiling, Exposé overview, four workspaces, notification center,
+  Quick Settings, on-screen displays, screen lock, shutdown/restart/power-off states.
+- **20 working applications.** Office suite, code editor, file manager, browser with a real search
+  engine, notes, Persian accounting ledger, four complete games, music synth, photo gallery, live
+  weather, terminal, settings with 14 sections.
+- **Persistence that survives a reload.** Documents, notes, images, trash, browser tabs, ledger and
+  preferences are stored in IndexedDB + LocalStorage — with a warning banner when storage is blocked.
+- **Honest network behaviour.** Search queries five providers in parallel and shows a per-provider
+  status rail (*ok / empty / error + HTTP code*). Weather is Open-Meteo. Failure states are designed,
+  never faked.
+- **Installable PWA with an offline shell.** Manifest, maskable icons, app shortcuts, network-first
+  navigations with an offline fallback, stale-while-revalidate assets.
+- **Accessibility and motion care.** Full keyboard navigation, labelled controls (audited by tests),
+  reduced-motion support in every animated surface, high-contrast mode, UI/text scaling.
+- **Bilingual.** English ⇄ فارسی with a complete RTL flip, Persian calendar formatting and a
+  Vazirmatn font stack.
+
+---
 
 ## Screens
 
-| Screen | What it is |
-| --- | --- |
-| Boot splash | Firmware-style POST table (CPU/memory/display/storage), drifting aurora, CRT scanlines, a live service checklist, percentage meter, log lines and a **Skip** control. |
-| Login | Large clock + date, wallpaper, avatar, password field with reveal toggle and a Caps-Lock indicator, language & keyboard layout selectors and a power menu. Demo mode: **any password works and nothing is stored**. |
-| Desktop | Wallpaper, column-flowing desktop icons, panel, Applications menu, clock/calendar, notification tray, Quick Settings, window manager, and a cinematic session intro (rings, wordmark, sweep). Apps open at ~100% of the work area. |
-| Lock screen | Same visual language as login, returns you to the running session without losing windows. |
-| Power states | Shutting down / restarting / powered off, with a "Power on" action. |
+**The desktop** — Files and Code side by side, dock, workspace dots, tray with volume/brightness/
+battery/notifications and the clock.
 
-The desktop layout is fluid: the panel can sit on the **bottom, top, left or right**, with adjustable
-size, opacity and auto-hide, and the whole UI scales for small screens (windows become maximised
-sheets on mobile widths).
+![Desktop](docs/screenshots/01-desktop.png)
 
-### Desktop
+**Nova Search** — five providers queried in parallel, results grouped by source, honest per-provider
+status (including a deliberate failure so you can see how one bad API never hides the rest).
 
-The desktop is a real workspace, not a wallpaper:
+![Nova Search](docs/screenshots/02-search.png)
 
-- **An icon for every installed application** (19 out of the box, including the Games folder), laid out in columns that grow to
-  the right and scroll when the screen is small — add or remove any of them and the choice is saved.
-- **Right-click the desktop** for *New folder / text file / document / spreadsheet / presentation /
-  note*, *Add app shortcut…*, wallpaper and display settings, "show desktop" and "restore default
-  icons". Anything created appears on the desktop immediately and opens in the right application.
-- **Right-click an icon** for open, add/remove from desktop, pin to the panel, reorder, rename,
-  properties or move to Trash. Right-click any app in the Applications menu to add it to the desktop.
-- Keyboard: arrows/tab move focus, `Enter` opens, `F2` renames, `Delete` moves a file to the Trash.
-- Double-click on a mouse, single tap on touch screens.
+**Games** — four complete games with real rules, difficulty levels, keyboard *and* touch input and
+persisted best scores.
 
-### Panel, sound and brightness
+![Games](docs/screenshots/03-games.png)
 
-- A floating glass dock with launcher, pinned apps, running windows, network, **volume**, **brightness**,
-  battery, notifications, calendar and a show-desktop button.
-- The tray volume and brightness icons support the **mouse wheel**; both also live in Quick Settings.
-- One on-screen display is shared by every surface, so the panel, Quick Settings and the Settings app
-  can never disagree about the current level.
-- Brightness dims the desktop layer only (a real display-brightness API does not exist in a browser);
-  volume is simulated and clearly labelled as such.
+**One codebase, every screen** — the same shell at 1440, 834 and 390 CSS pixels.
+
+![Responsive](docs/screenshots/04-responsive.png)
+
+> The images above are **illustrations drawn from the project's own design tokens** (colours,
+> gradients, window chrome, spacing) by `tools/make_previews.py`, committed as SVG + PNG. They are
+> generated from the same palette the app uses, but they are not browser screenshots — the sandbox
+> that builds this project has no browser. Open the live demo for the real thing.
 
 ---
 
-## Feature tour
+## Applications
 
-### Window manager
-- Title bar with app icon + name, minimise / maximise / close, drag to move, eight-way resize.
-- Click-to-focus with correct z-ordering and an active/inactive visual state.
-- **Edge and corner tiling**: drag a window to the top edge to maximise, to the left/right edge for a
-  half, or into a corner for a quarter. `Super + ←/→/↑/↓` does the same from the keyboard.
-- **Virtual desktops**: four workspaces, switched from the dots in the panel, `Ctrl+Alt+←/→`, the
-  window overview, or `Ctrl+K → “Go to workspace 3”`. Windows keep their state while you switch.
-- **Window overview (Exposé)**: `Ctrl+Alt+↑` lists every window with its real geometry and workspace,
-  and can focus, minimise, close or move each one.
-- Title-bar context menu (restore, snap left/right/quarter, move to another workspace, close) and a
-  desktop context menu.
-- Windows are clamped inside the work area, cascade when opened, and re-clamp on resize.
-- Multi-instance where it makes sense (Writer, Calc, Impress, Files, Terminal…), singletons for
-  Settings, Welcome and the session shell.
-
-### Command palette (`Ctrl+K`)
-A real launcher: search every installed app, every open window, shell actions (theme, settings,
-terminal, overview, shortcuts, lock) and workspaces. Arrow keys move, `Enter` runs, `Escape`
-closes, and each row performs its action — there are no placeholder entries.
-
-### Applications menu
-Favorites, All Applications, Recent, Internet, Office, Graphics, Multimedia, System, Utilities and
-Development categories with live counts; fuzzy search across names, descriptions and categories;
-pin/unpin; keyboard navigation (↑/↓/Enter/Esc); empty state; right-click a tile for *Open*,
-*Pin* and *Open in new window*.
-
-### Games
-The **Games** app is a hub for four complete, fully playable games that run with real rules and
-persist their best scores in the browser (`nova-linux.games.v1`):
-
-| Game | What is implemented |
+| Application | What actually works |
 | --- | --- |
-| **Minesweeper** | 9×9 / 12×16 / 14×20 boards, first click always safe, flood reveal, flags (right-click or long-press), chord-click, per-difficulty best **time**. |
-| **2048** | Complete merge/lock rules, keyboard + swipe, score, best score, top tile, one-step undo. |
-| **Snake** | Seeded food placement, wall and self collision, three speeds, score-driven acceleration, pause (`Space`), `R` restarts, on-screen D-pad for touch. |
-| **Tic-Tac-Toe** | Two players on one screen, or a computer with easy (random), medium (optimal 65 %) and hard (full minimax) levels; running win/draw/loss tally. |
+| **Files** | Every home folder + Desktop/Documents/Downloads/Pictures/Music/Videos/Notes/Favorites/Recent/Applications/Trash. Grid & list views, breadcrumbs, history, search, multi-select, drag & drop move, copy/cut/paste, duplicate, rename, trash/restore/permanent delete, details pane, inline image preview, "New file of any supported kind". |
+| **Code** | The new editor: file explorer over `~/Projects`, tabs, dirty indicators, syntax highlighting for TS/JS/JSON/CSS/HTML/MD/SH, find panel, line numbers, `Ctrl+S`/`Ctrl+F`, `Tab`/`Shift+Tab` indent, status bar with language, cursor position and save state. See [below](#code--the-built-in-editor). |
+| **Browser** | Tabs, back/forward/reload/home, bookmarks, history, downloads, new-tab page, embedded pages where the site allows framing, a clear explanation when `X-Frame-Options`/CSP blocks it, and Nova Search. |
+| **Writer** | Rich text with headings, bold/italic/underline, lists, alignment, colours, links, tables, find & replace, word/character count, print, save to the virtual FS, export TXT/HTML. |
+| **Calc** | 40 × 16 grid, formula bar, `SUM/AVERAGE/MIN/MAX/COUNT/ABS/ROUND/SQRT/PI`, ranges, dependency-based recalculation, circular-reference detection, cell styling, row/column insert/delete, multiple sheets, CSV import/export. |
+| **Impress** | Slide CRUD and reordering, layouts, text/shape inserts, themes, backgrounds, thumbnails, full-screen slide show with keyboard control, autosave, JSON export. |
+| **Notes** | Create, edit, search, pin, colour, delete, autosave with timestamps, TXT export, opens `.novanote` from Files. |
+| **Accounting** | Persian RTL small-business ledger: dashboard KPIs and chart, customers, suppliers, products, invoices with line items and tax, payment status, partial payments, printing, transactions, payments, accounts, reports with CSV export, JSON backup/import. Sample data is labelled as sample data. |
+| **Games** | Minesweeper (3 board sizes, safe first click, flood reveal, flags, chording, best times), 2048 (full merge/lock rules, swipe, undo, best score), Snake (three speeds, acceleration, pause, D-pad), Tic-Tac-Toe (two players or easy/medium/full-minimax). `~/Games` holds real launcher files. |
+| **Music** | Bundled tracks synthesised with Web Audio, live analyser visualiser, playlist from `~/Music`, play/pause/next/previous, volume. Clearly a demo player. |
+| **Photos** | Gallery over `~/Pictures`: thumbnails, keyboard navigation, zoom, rotate, details, set-as-wallpaper. |
+| **Weather** | Live Open-Meteo data: now, 24-hour strip, 7-day list, city search, saved cities, explicit retry states. |
+| **Settings** | Appearance (theme, accent studio, radius, transparency, sounds), Desktop & Panel, Display, Brightness, Wallpapers, Fonts, Keyboard layout, Language, Date & Time, Notifications, Storage (export/import/backup/restore/clear), Privacy, Accessibility, About. |
+| **Terminal** | A simulated shell over the virtual FS: `help`, `ls`, `cd`, `pwd`, `mkdir`, `touch`, `cat`, `echo >`, `history`, `neofetch`, `open` — and a polite refusal for `sudo`. |
+| **System apps** | Calculator, Calendar (events, colours, month view), System Monitor (labelled *simulated*), Software Center (install/remove apps, updates the menu), Trash, Welcome. |
 
-`~/Games` in the virtual file system contains four `.app` launcher files — double-clicking one in
-Files or on the desktop opens that game, so the folder is a real launcher folder and not decoration.
+---
 
-### Files ("Computer")
-All home folders plus Desktop, Documents, Downloads, Pictures, Music, Videos, Notes, Favorites,
-Recent, Applications and Trash. Grid and list views, icon size control, sorting, breadcrumbs,
-back/forward/up, search, multi-select, drag & drop move, copy/cut/paste, duplicate, rename,
-Move to Trash, restore, delete permanently, empty trash (with confirmation), details pane,
-inline image preview, and a *New* menu that creates real files of every supported kind.
+## Code — the built-in editor
 
-### Browser + Nova Search
-Chrome-inspired but clearly its own thing: tabs (new/close/switch), back/forward/reload/home,
-bookmarks, history, downloads panel, and a custom new-tab page with a clock and shortcuts.
+`Code` is a real editor over the virtual file system, not a textarea with a fancy frame:
 
-**Search is real.** Typing a phrase in the address bar (or the new-tab search box) opens
-**Nova Search**, which queries public APIs straight from your browser and renders the results
-natively:
+- **Explorer** over `~/Projects`, seeded with `hello.ts`, `theme.css`, `notes.md` and `data.json`;
+  arrow keys and `Enter` open files, `←` collapses a folder.
+- **Tabs** with per-file dirty dots, `Ctrl+W`-style closing via the tab's `×`, and a guard when you
+  close a file with unsaved changes.
+- **Syntax highlighting** for TypeScript, JavaScript, JSON, CSS, HTML, Markdown and shell, produced
+  by a small tokenizer (`tokenize()`) that understands comments, strings, numbers, keywords,
+  functions and property access — so `obj.return` is not painted as a keyword.
+- **Editing that behaves**: a transparent `<textarea>` over the highlighted layer keeps native
+  selection, undo and IME support; `Tab`/`Shift+Tab` indent and outdent whole selections, the gutter
+  tracks `lineCount()`, and the status bar reports `LANGUAGE_LABEL`, caret line/column, line count
+  and `Saved` / `Unsaved changes`.
+- **Find** (`Ctrl+F`) with match count, next/previous wrap-around and highlight, plus `Ctrl+S` to
+  write the file back to the FS (the same store Files reads, so edits show up there immediately).
+- **Mobile**: under 760 px the explorer becomes an overlay sheet above the editor, keeping the
+  text area at a usable width.
 
-| Source | Endpoint | Used for |
+---
+
+## Responsive by contract
+
+Responsiveness is enforced by `tests/responsive.test.ts`, not by assumption. Each stylesheet owns
+its breakpoints, and the tests fail if one disappears or if a new sheet introduces a fixed width
+wider than a phone.
+
+| Width | Behaviour |
+| --- | --- |
+| ≤ 1100 px | Window defaults shrink to the work area; cards reflow into fewer columns. |
+| ≤ 900 px | Panel switches to its compact layout, labels collapse to icons, tray items drop. |
+| ≤ 860 px | Files sidebar collapses to a rail, the Games grid becomes a single column, media panes stack. |
+| ≤ 760 px | Code's explorer becomes an overlay; palette, overview and shortcut sheet go near-full-width. |
+| ≤ 640 px | Game boards rescale (cells 22 → 18 → 15 px), card grids become `repeat(auto-fill, minmax(...))`. |
+| ≤ 420 px | Palette, sheets and the tour are edge-to-edge; tap targets stay ≥ 32 px. |
+
+Also verified: viewport/PWA meta tags, fluid `auto-fill` grids, no `width > 640px` in the new
+sheets, `@media (prefers-reduced-motion: reduce)` coverage in every animated sheet, and the Code
+mobile overlay rules. Windows become maximised sheets on touch-sized viewports, and the whole shell
+honours the UI-scale setting.
+
+---
+
+## The shell
+
+- **Boot splash** — firmware-style POST table (CPU, memory, display, storage), drifting aurora, CRT
+  scanlines, live service checklist, percentage meter, log lines and a **Skip** control.
+- **Login** — large clock and date, avatar, password field with reveal toggle, Caps-Lock indicator,
+  language & layout selectors, power menu. Any password works; nothing is stored.
+- **Window manager** — drag, eight-way resize, minimise/maximise/close, click-to-focus with correct
+  z-order, edge and corner tiling, `Super + arrows`, window overview (Exposé) with real geometry,
+  title-bar context menu, cascading placement, clamping inside the work area.
+- **Panel** — top, bottom, left or right; adjustable size, opacity and auto-hide; launcher, pinned
+  apps, running windows, workspace switcher (horizontal or vertical), tray with network, volume,
+  brightness, battery, notifications, calendar and show-desktop.
+- **Command palette** (`Ctrl + K`) — apps, open windows, shell actions and workspaces, keyboard-first.
+- **Applications menu** — favorites, all apps, recent, categories with live counts, fuzzy search,
+  pin/unpin, right-click actions.
+- **Desktop** — icon grid in columns, right-click to create folders/files/documents or add app
+  shortcuts, rename, pin, reorder, properties, move to Trash.
+- **Lock screen, power states, screensaver, shortcut sheet (`Shift + ?`)** and a first-login Welcome.
+
+---
+
+## Search that is actually real
+
+Typing a phrase in the Browser's address bar opens **Nova Search**, which queries five providers in
+parallel from your browser — no proxy, no server, no keys:
+
+| Provider | Endpoint | Purpose |
 | --- | --- | --- |
-| Wikipedia (per language) | `action=query&generator=search` + `extracts`/`pageimages`, with two REST fallbacks | encyclopaedic results with real snippets and thumbnails |
-| Stack Exchange | `api.stackexchange.com/2.3/search/advanced?site=stackoverflow` | technical / programming questions |
-| Hacker News (Algolia) | `hn.algolia.com/api/v1/search?tags=story` | community discussions for technical queries |
-| DuckDuckGo Instant Answer | `api.duckduckgo.com/?format=json` | the instant-answer card and related topics |
-| Free Dictionary | `api.dictionaryapi.dev/api/v2/entries/en/{word}` | definitions for single-word queries |
+| Wikipedia (per language) | `action=query&generator=search` + `extracts`/`pageimages`, two REST fallbacks | encyclopaedic results with real snippets and thumbnails |
+| Stack Exchange | `api.stackexchange.com/2.3/search/advanced?site=stackoverflow` | technical Q&A |
+| Hacker News (Algolia) | `hn.algolia.com/api/v1/search?tags=story` | community discussion |
+| DuckDuckGo Instant Answer | `api.duckduckgo.com/?format=json` | instant-answer card and related topics |
+| Free Dictionary | `api.dictionaryapi.dev/api/v2/entries/en/{word}` | single-word definitions |
 
-The five providers run **in parallel**, results are de-duplicated by URL and grouped by source.
-A chip row above the results shows the honest status of every provider (*ok / empty / error* with
-the HTTP status), so one failing API never hides the others — the page only reports a total failure
-when *every* provider errored. Each provider's hits render natively (Wikipedia articles get a clean
-reader view); the page never fabricates a result to fill space. Responses are cached for five
-minutes in memory, with *Retry* to bypass the cache. No API keys, no proxy, no tracking.
-
-Typed text that *is* a URL still navigates; whole websites render in an embedded frame, and sites
-that refuse to be embedded (`X-Frame-Options` / CSP) show an explanatory screen with an "Open in
-your real browser" action instead of a broken frame.
-
-### Music, Photos, Weather
-- **Music** — a working player. Bundled tracks are *synthesised with Web Audio* (no audio files, no
-  licensing questions) and drawn with a live analyser; dropping real audio files into `~/Music`
-  adds them to the playlist, with play/pause, previous/next, seek-free progress, volume and a
-  visualiser. It states plainly that it is a demo player, not a media library.
-- **Photos** — a gallery over `~/Pictures`: thumbnails, keyboard navigation, zoom, rotate, details
-  panel and **set as wallpaper** (writes the real custom wallpaper used by the desktop).
-- **Weather** — live forecasts from **Open-Meteo** (keyless, CORS-enabled): current conditions,
-  hourly strip for the next 24 hours, a 7-day list, city search via the Open-Meteo geocoder and
-  saved cities. Network failures show an explicit retry state instead of stale or invented data.
-
-### Office suite
-- **Writer** — rich text editing (headings, bold/italic/underline, lists, alignment, colours,
-  links, tables), find & replace, live word/character count, print preview + print, save into the
-  virtual file system, export to TXT and HTML. DOCX/PDF export is deliberately **not** offered.
-- **Calc** — 40 × 16 grid, formula bar, `SUM/AVERAGE/MIN/MAX/COUNT/ABS/ROUND/SQRT/PI`, arithmetic
-  and ranges, dependent recalculation, circular-reference and unknown-function errors, cell styles
-  (bold/italic/align/colour), row/column insert & delete, multiple sheets, CSV import/export.
-- **Impress** — slide CRUD and reordering, layouts, text/shape inserts, themes, backgrounds,
-  thumbnails, full-screen slide show with keyboard control, autosave and JSON export.
-
-### Notes
-Create, edit, search, pin, colour-code and delete notes; autosave with last-modified timestamps;
-export to TXT; opens `.novanote` files from Files; Persian and English text.
-
-### NOVA Accounting (Persian, RTL)
-A working small-business ledger: dashboard with KPIs and a monthly chart, customers, suppliers,
-products/services, sales and purchase invoices with line items (quantity, price, discount, tax),
-derived payment status, partial payments, printing, income/expense transactions with filters,
-payments, bank accounts, reports with CSV export, and settings with JSON backup/import.
-Sample data ships pre-loaded **and is clearly labelled as sample data**, with one-click clearing.
-
-### Settings
-Appearance (theme, accent, **theme studio** custom accent colour, corner radius, transparency,
-**system sounds** with a test button), Desktop & Panel (position, size, opacity, auto-hide, dock
-labels), Display (virtual resolution, UI scale, text size, fullscreen), Brightness (desktop-layer
-dimming only), Wallpapers, Fonts, Keyboard layout, Language (English ⇄ فارسی with a full RTL flip),
-Date & Time (24-hour, seconds), Notifications, Storage (export/import/backup/restore/clear demo data
-with confirmations), Privacy, Accessibility (**reduce motion**, **high contrast**, text/UI scale,
-**screensaver delay**, shortcut list) and About.
-
-### Installable PWA, offline shell and code splitting
-- `public/manifest.webmanifest` with 192/512/maskable PNG icons, standalone display, app shortcuts
-  (`?app=files`, `?app=games`) and theme colours. Install it from the browser's install button.
-- `public/sw.js` precaches the shell, serves navigations network-first with an offline fallback and
-  keeps hashed assets stale-while-revalidate. Third-party API responses are **never** cached, so
-  search and weather can never show stale data as if it were live.
-- Every application is a `React.lazy` chunk; the shell bundle is ~160 kB and the vendor libraries
-  are split into long-lived `vendor-*` chunks. Opening an app shows a calm loading placeholder.
-
-### Accessibility
-- A visible global focus ring (`:focus-visible`), a **Skip to the desktop** link, named controls and
-  dialogs everywhere, `aria-pressed` workspace buttons, `aria-live` loading state for lazy apps.
-- **High contrast** mode, reduced motion, text-size and UI-scale sliders, and full RTL support.
-- `tests/a11y.test.tsx` audits the desktop for unnamed controls, unlabelled dialogs and images
-  without `alt` text, and covers the keyboard-only palette path.
-
-### System apps
-Calculator (keyboard-friendly, history), Calendar (month view, events, colours), Terminal
-(simulated shell over the virtual FS only: `help`, `ls`, `cd`, `pwd`, `mkdir`, `touch`, `cat`,
-`echo >`, `history`, `neofetch`, `open`), System Monitor (clearly labelled **simulated** graphs),
-Software Center (install/remove simulator apps, which updates the Applications menu), Trash,
-and a Welcome window on first login.
+Results are de-duplicated by URL and grouped per source; a chip row reports each provider's honest
+state (*ok / empty / error + HTTP status*), so a single failure never hides the others. Every
+provider failing produces a total-failure screen with Retry — never invented rows. Responses are
+cached for five minutes in memory.
 
 ---
 
@@ -229,37 +230,30 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-Other scripts:
-
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # Vitest + Testing Library (jsdom)
+npm run test       # 194 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
+npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
 ```
 
 ---
 
 ## Deploying to GitHub Pages
 
-1. Push the repository to GitHub (suggested name: `nova-linux-web`).
+1. Push the repository to GitHub.
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-   This is the one setting that cannot be automated: the workflow token is not allowed to create
-   the Pages site, so `configure-pages` can only *configure* an existing one. Until it is flipped,
-   the run stops at **Configure Pages** with a `404` from the Pages API.
-3. Push to `test` (this repository's default branch), to `main`, or run the workflow manually with
-   **Run workflow**. `.github/workflows/deploy.yml` will type-check, run the tests, verify the Pages
-   status, build with `VITE_BASE=/<repo-name>/`, add `.nojekyll`, upload `dist` and deploy it.
+   This is the only step that cannot be automated: the workflow token may not create the Pages
+   site, so `configure-pages` can only *configure* an existing one. Until it is enabled, the run
+   stops at **Configure Pages** with a `404` from the Pages API.
+3. Push to `main`/`test`, or run the workflow manually. `.github/workflows/deploy.yml` type-checks,
+   tests, verifies Pages status, builds with `VITE_BASE=/<repo-name>/`, adds `.nojekyll`, uploads
+   `dist` and deploys it.
 
-The live URL is `https://<user>.github.io/<repo>/`. If a run fails only at *Configure Pages*, the
-build is fine — enable Pages and press **Re-run all jobs**.
-
-The Vite `base` comes from `VITE_BASE`, so the same code works at a project sub-path
-(`https://user.github.io/<repo>/`) **and** at a domain root. There are no absolute asset URLs in the
-bundle — fonts are bundled locally through `@fontsource-variable`, icons are inline SVG components,
-and wallpapers are pure CSS gradients.
-
-For a custom domain, set `VITE_BASE=/` in the workflow environment.
+The Vite `base` comes from `VITE_BASE`, so the same code works at a project sub-path **and** at a
+domain root. There are no absolute asset URLs in the bundle: fonts are bundled locally through
+`@fontsource-variable`, icons are inline SVG components, wallpapers are pure CSS gradients.
 
 ---
 
@@ -267,18 +261,18 @@ For a custom domain, set `VITE_BASE=/` in the workflow environment.
 
 ```
 src/
-  app/                    App shell + phase machine (boot → login → desktop → locked → off)
+  app/                    Shell + phase machine (boot → login → desktop → locked → off)
   components/
-    desktop/              Desktop surface, icons, context menus, intro animation
+    desktop/              Desktop surface, icons, context menus, session intro
     windows/              WindowFrame (drag/resize/snap) + WindowManager
-    taskbar/              Panel (positions, tray, task list, clock)
+    taskbar/              Panel (positions, tray, task list, workspace switcher, clock)
     start-menu/           Applications menu
     quick-settings/       Quick Settings popover
     notifications/        Notification center + calendar popover
     screens/              Boot and login screens
     common/               NovaLogo, AppIcon, Modal, ContextMenu, Toasts, FilePicker, Controls…
   apps/
-    files/ browser/ writer/ calc/ impress/ notes/ accounting/
+    files/ code/ browser/ writer/ calc/ impress/ notes/ accounting/
     settings/ terminal/ calculator/ calendar/ software-center/
     system-monitor/ welcome/ games/ music/ photos/ weather/
   core/
@@ -288,18 +282,19 @@ src/
     persistence/          IndexedDB wrapper (kv store) + React bindings
     themes/               Settings store + theme application
     localization/         i18n (English keys → Persian values), localized dates
-    notifications/        Notification store
-    audio/ pwa/           Web Audio feedback sounds + service-worker registration
+    notifications/ audio/ pwa/
   hooks/ services/ styles/ types/ utils/
-tests/                    Vitest suites (core logic, apps, shell, games, a11y)
+tests/                    Vitest suites (core, apps, shell, games, code, responsive, a11y)
 e2e/                      Playwright smoke suite
-docs/                     Architecture, testing checklist, shortcuts
+docs/                     Architecture, testing checklist, shortcuts, generated screenshots
+tools/                    make_previews.py — the illustration generator
 public/                   Logo, PWA manifest + icons, service worker, robots.txt
 ```
 
-**Adding an app** only needs: metadata in `core/apps/appMeta.ts`, a component accepting
-`AppWindowProps` (`{ win }`), and one line in `core/apps/registry.ts`. Everything else — window
-handling, launcher entry, search, pinning, software center, persistence helpers — is generic.
+**Adding an app** takes three things: metadata in `core/apps/appMeta.ts`, a component that accepts
+`AppWindowProps` (`{ win }`), and one line in `core/apps/registry.ts`. Window handling, launcher
+entry, palette search, pinning, the Software Center and persistence helpers are all generic.
+App modules are lazy-loaded, so a new app costs nothing until it is opened.
 
 ---
 
@@ -307,13 +302,28 @@ handling, launcher entry, search, pinning, software center, persistence helpers 
 
 | Data | Where | Notes |
 | --- | --- | --- |
-| Virtual file system (documents, notes, images, trash) | **IndexedDB** (`nova-linux-web`, versioned) | Falls back to an in-memory store when storage is blocked; the UI then shows a warning banner and says changes are session-only. |
-| App data (browser tabs/history/bookmarks, accounting ledger, calendar) | **IndexedDB** key-value stores | Versioned keys such as `app.browser.v1`, `app.accounting.v1`. |
+| Virtual file system (documents, notes, images, trash) | **IndexedDB** (`nova-linux-web`, versioned) | Falls back to an in-memory store when storage is blocked; the UI then warns that changes are session-only. |
+| App data (browser tabs/history/bookmarks, accounting ledger, calendar, games best scores) | **IndexedDB** key-value stores | Versioned keys such as `app.browser.v1`, `app.accounting.v1`, `nova-linux.games.v1`. |
 | UI preferences (theme, accent, wallpaper, panel, language, accessibility) | **LocalStorage** (`nova-linux.settings.v1`) | Small, synchronous, safe to lose. |
 | Session phase | `sessionStorage['nova.session']` | `active` / `locked` only — **no credentials, ever**. |
 
-Storage → Settings offers JSON export/import of the whole workspace (settings, launcher, files and
-app data) plus a "clear demo data" action that always asks for confirmation.
+Settings → Storage exports and imports the whole workspace as JSON, with a confirmation-guarded
+"clear demo data" action.
+
+---
+
+## Tech stack
+
+| Layer | Choice | Why |
+| --- | --- | --- |
+| UI | React 18 + TypeScript 5 (strict) | Component model fits windows, apps and panels; strict types keep the app contract honest. |
+| Build | Vite 5 | Fast dev server, lazy chunks per app, hash-named assets that cache well behind the service worker. |
+| State | Zustand | Tiny stores with explicit actions; window/FS/settings state stays out of component trees. |
+| Motion | Framer Motion (sparingly) | Only for window open/close, palette and sheet transitions — and always disabled under reduced motion. |
+| Styling | Hand-written CSS with design tokens | Every colour, radius, shadow and blur is a CSS variable, so themes and the accent studio are data, not overrides. |
+| Icons | Lucide React | Inline SVG, no icon-font request, no CDN. |
+| Persistence | IndexedDB + LocalStorage | Async, versioned, and degradable. |
+| Tests | Vitest + Testing Library + Playwright | Logic and DOM behaviour in jsdom, one browser smoke suite in CI. |
 
 ---
 
@@ -321,101 +331,99 @@ app data) plus a "clear demo data" action that always asks for confirmation.
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl/Cmd + K` | Open the command palette (apps, windows, actions) |
-| `Ctrl + Alt + T` | Open Terminal |
+| `Ctrl/Cmd + K` | Command palette (apps, windows, actions, workspaces) |
+| `Ctrl + Alt + T` | Terminal |
+| `Ctrl + Alt + L` | Lock the session |
 | `Ctrl + Alt + ↑` | Window overview (Exposé) |
 | `Ctrl + Alt + ←/→` | Switch virtual desktop |
 | `Super + ←/→/↑/↓` | Tile / maximise / restore the active window |
-| `Alt + Tab` | Switch to the next window |
-| `Ctrl + Alt + L` | Lock the session |
-| `Shift + ?` | Keyboard shortcut sheet |
+| `Alt + Tab` | Cycle windows |
+| `Shift + ?` | Shortcut sheet |
 | `Esc` | Close the open menu / dialog |
-| `Delete`, `F2`, `Enter`, `Ctrl+A/C/V` | Files: delete, rename, open, select-all, copy/paste |
-| `Ctrl + S` | Save in Writer / Calc / Impress |
-| Arrow keys, `Esc` | Slide-show navigation |
+| `Enter`, `F2`, `Delete` | Files: open, rename, move to Trash |
+| `Ctrl + S` / `Ctrl + F` | Code: save / find · Writer, Calc, Impress: save |
+| `Tab` / `Shift + Tab` | Code: indent / outdent the selection |
+| Arrows, `Space`, `R` | Games: steer/pause/restart |
+| Arrows, `Esc` | Slide show navigation |
+
+Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ---
 
 ## Testing
 
-```bash
-npm run test        # 166 Vitest tests (jsdom + Testing Library)
-npm run test:e2e    # Playwright smoke suite (needs `npx playwright install chromium`)
 ```
-
-The Playwright suite (`e2e/desktop.spec.ts`, workflow `.github/workflows/e2e.yml`) boots the real
-app in Chromium and drives it with the actual shortcuts: sign-in, the application menu, the command
-palette, launching a game, snapping windows, switching desktops, the overview, and the honest
-per-provider failure state of Nova Search (third-party calls are blocked on purpose).
+tsc -b          clean (strict, project references)
+vitest run      194 tests, 11 files, all passing
+vite build      production bundle ~165 kB index + lazy app chunks
+```
 
 The unit suite runs in `jsdom` with Testing Library and covers:
 
-- utilities, the formula engine and the spreadsheet engine (including error cases),
-- virtual file system CRUD, trash/restore and unique-name handling,
+- pure utilities, the formula engine and the spreadsheet engine (including error cases),
+- the virtual file system: CRUD, trash/restore, unique names, desktop-created files,
 - accounting totals, invoice status derivation and sample-data handling,
-- the boot → login → desktop flow, the Applications menu, Quick Settings,
-- every registered app rendering without crashing, plus **every Accounting tab** and **every Settings
-  section**,
-- the desktop surface: an icon for every installed application, column layout, adding/removing app
-  shortcuts, and files created from the desktop context menu showing up immediately,
-- volume and brightness: the slider track fill follows the value, the Quick Settings control and the
-  settings store agree, and both surfaces raise the same on-screen display,
-- real interactions: Terminal commands (and the `sudo` refusal), Notes autosave, Files folder
-  creation through the dialog, Trash restore, Accounting create/validate, Calculator keypad,
-  Browser navigation (including the iframe-blocked path), Software Center install/uninstall,
-  Calendar events, Settings language & reduced motion, theme/accent persistence,
-- **games logic**: safe first click, mine counting, flags/chording, win & loss, 2048 merge and
-  lock rules, snake movement, self-collision and speed curve, tic-tac-toe minimax (never loses as O),
-  best-score bookkeeping,
-- **weather mapping**: WMO code vocabulary, geocoding and forecast shaping, incomplete payload →
-  `null` instead of invented data, keyless URL construction, hourly slicing,
-- **new shell behaviour**: virtual desktops, window tiling, palette state, high-contrast/theme studio.
+- the boot → login → desktop flow, Applications menu, Quick Settings, window tiling, workspaces,
+- every registered app rendering without crashing, plus every Accounting tab and Settings section,
+- real interactions: Terminal commands (and the `sudo` refusal), Notes autosave, Files dialogs,
+  Trash restore, Calculator keypad, Browser navigation including the iframe-blocked path,
+  Software Center install/uninstall, Calendar events, language & reduced-motion toggles,
+- **Code**: language detection, the tokenizer (including property-name keywords and comments),
+  find-in-file, indent/outdent, caret maths, and file-app routing for code extensions,
+- **games logic**: safe first click, mine counting, flags/chording, win & loss, 2048 merge and lock
+  rules, snake movement, self-collision, speed curve, minimax (never loses), best-score bookkeeping,
+- **responsive contract**: every breakpoint, no over-wide fixed widths, fluid grids, PWA meta,
+  reduced-motion coverage, Code's mobile overlay,
+- **accessibility**: an audit for unnamed controls, unlabelled dialogs and images without `alt`,
+  plus the keyboard-only palette path.
 
-`docs/TESTING.md` contains the full 30-point manual behaviour checklist used for the release pass.
+`docs/TESTING.md` holds the manual behaviour checklist; `e2e/desktop.spec.ts` (CI only) drives the
+real app in Chromium through sign-in, the menu, the palette, a game, snapping, workspaces and Nova
+Search's per-provider failure state.
 
 ---
 
 ## Honest limitations
 
-NOVA Linux is deliberately honest about what it cannot do:
-
-- **No real OS, kernel, hardware or network access.** Terminal is a simulator over the virtual FS;
-  System Monitor graphs and battery/network readings are synthetic and labelled as such.
-- **Search is real, page rendering is limited.** Nova Search returns genuine results from public
-  APIs, but arbitrary websites still cannot be rendered inside the shell: the Browser can only
-  display pages that explicitly allow embedding, many sites block it, and you get a clear
-  explanation plus a link for your real browser. There is no proxy, no server-side fetch and no
-  cookie jar.
-- **No DOCX/PDF import/export.** Writer exports TXT and HTML, and printing uses the browser's own
-  print dialog. Nothing pretends to produce documents it cannot.
-- **No real authentication.** The login screen is a demo: any password works, nothing is validated
-  or stored. Passwords typed there never leave the component.
-- **Brightness** dims the desktop layer only (a real display brightness API does not exist in a
-  browser).
-- **Virtual resolution** is a simulated canvas — it changes layout metrics, not your display.
-- Downloadable files are generated in-memory and handed to the browser; there is no server upload.
-- **Offline mode** is a cached shell: apps load from the service-worker cache, but anything that needs
-  the internet (search, weather, real web pages) shows its normal network-error state while offline.
-- **Music** ships synthesised Web Audio tones, not songs. Files you place in `~/Music` are played by
-  the browser and therefore depend on its codec support; unsupported formats are reported, not faked.
-- **Weather** comes from Open-Meteo and needs a connection; there is no offline forecast cache
-  pretending to be current.
+- **No real OS, kernel, hardware or filesystem access.** Terminal is a simulator over the virtual FS;
+  System Monitor graphs, battery and network readings are synthetic and labelled as such.
+- **Search is real, embedding is not.** Nova Search returns genuine results from public APIs, but
+  arbitrary websites cannot be rendered inside the shell — the Browser only displays pages that
+  allow framing and explains the block otherwise. There is no proxy, no server-side fetch, no cookie
+  jar.
+- **No DOCX/PDF import/export.** Writer exports TXT and HTML; printing uses the browser dialog.
+- **No authentication.** The login screen is a demo: any password works and nothing is validated or
+  stored. Passwords never leave the component.
+- **Brightness** dims the desktop layer only — browsers cannot control display brightness.
+- **Virtual resolution** changes layout metrics, not your display.
+- **Offline mode** is a cached shell: apps load from the service worker, anything needing the network
+  shows its normal error state.
+- **Music** ships synthesised Web Audio tones, not songs; files you add are played by the browser and
+  unsupported codecs are reported rather than faked.
+- **The screenshots in this README are generated illustrations** (see the next section), because the
+  build sandbox has no browser to capture real ones.
 
 ---
 
-## Design notes
+## Regenerating the illustrations
 
-- One CSS-variable design system (`styles/tokens.css`): colours, radii, shadows, motion and layout
-  metrics. Themes and accents swap tokens only — no component knows a hex value.
-- Dark-first, with a full light theme; accent palettes (mint, sky, violet, amber, rose); Persian uses
-  Vazirmatn and the whole document flips to RTL with logical CSS properties.
-- Motion is cheap and optional: reduced-motion is honoured both from Settings and from
-  `prefers-reduced-motion`, and heavy effects are avoided on the compositor path.
-- Every interactive element does something real: no placeholder buttons, no fake success toasts.
-  Empty, loading, error and confirmation states exist throughout.
+`tools/make_previews.py` draws the four figures from the project's design tokens with nothing but
+the Python standard library, writing SVG into `docs/screenshots/`:
+
+```bash
+python3 tools/make_previews.py      # SVG only, standard library
+pip install resvg-py
+python3 tools/make_previews.py      # SVG + 1440 px PNG renders
+```
+
+Change a colour token at the top of the script and every figure follows the palette. Swapping in
+real screenshots is a drop-in: overwrite the PNGs and the README picks them up.
 
 ---
 
-Built as a portfolio-grade demonstration that a desktop-class experience can live inside a single
-static web page. Not affiliated with any operating-system vendor; "Chrome-inspired" only describes a
-browser layout, and NOVA is not Chrome or Chromium.
+<div align="center">
+
+**Built with React, TypeScript and a lot of CSS variables.**
+If something looks like it should work, it works — and if it cannot work, the UI says so.
+
+</div>
