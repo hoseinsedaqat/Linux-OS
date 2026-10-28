@@ -140,3 +140,12 @@ The second command should print nothing; the first should only show paths prefix
   uses a fixed width wider than a phone, card grids are fluid, the PWA/viewport meta tags are in
   place, reduced-motion coverage exists in every animated sheet, and Code's mobile overlay rules
   are present.
+
+### Why the E2E suite seeds two session flags
+
+`e2e/desktop.spec.ts` sets `localStorage['nova.tour.seen']` and
+`sessionStorage['nova.welcomed']` before the first navigation. Both surfaces appear **after** the
+desktop is ready (900 ms timers) and both sit on top of the windows the tests drive: the tour is a
+full-screen backdrop that swallows pointer events and the Welcome window covers the game board. The
+suite used to race those timers, which showed up as random 60 s click timeouts. `signIn()` still
+dismisses either surface if one appears anyway, so the helper stays honest.
