@@ -463,7 +463,7 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
       set('wallpaper', 'custom');
       notify(t('Wallpaper updated'), { body: `${file.name} · ${formatBytes(dataUrl.length)}`, kind: 'success' });
     } catch {
-      notifyError(t('That image could not be used'), t('Try a JPG or PNG under 10 MB.'));
+      notifyError(t('That image could not be used'), t('Try a JPG or PNG under 8 MB.'));
     }
   };
 

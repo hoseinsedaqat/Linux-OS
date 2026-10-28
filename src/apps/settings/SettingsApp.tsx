@@ -528,7 +528,7 @@ export function SettingsApp({ win }: AppWindowProps) {
                   <RotateCcw size={14} /> {t('Reset to default')}
                 </button>
               )}
-              <span className="tiny faint">{t('Images up to 1.5 MB are stored in this browser only.')}</span>
+              <span className="tiny faint">{t('Images up to 8 MB are accepted; they are resized to 1920 px and stored in this browser only.')}</span>
             </div>
             <input
               ref={wallpaperRef}
