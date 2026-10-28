@@ -4,7 +4,13 @@ import { Desktop } from '@/components/desktop/Desktop';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { useSettings } from '@/core/themes/settingsStore';
-import { DEFAULT_DESKTOP_APPS, useLauncher } from '@/core/apps/launcherStore';
+import {
+  DEFAULT_DESKTOP_APPS,
+  DEFAULT_FAVORITES,
+  migrateLauncherState,
+  useLauncher,
+} from '@/core/apps/launcherStore';
+import { Panel } from '@/components/taskbar/Panel';
 import { APP_META } from '@/core/apps/appMeta';
 import { saveSession, loadSession } from '@/core/window-manager/session';
 import type { AppId } from '@/types';
@@ -178,5 +184,90 @@ describe('code palette', () => {
     expect(items.length).toBeGreaterThan(0);
     expect(items.join(' ')).toMatch(/Format document/);
     expect(items.join(' ')).toMatch(/Save/);
+  });
+});
+
+describe('Code is reachable from the main screen', () => {
+  it('is one of the first desktop icons, not buried at the bottom', async () => {
+    desktop();
+    await waitFor(() => expect(document.querySelectorAll('.desktop-icon').length).toBeGreaterThan(5));
+    const labels = Array.from(document.querySelectorAll('.desktop__icons .desktop-icon__label')).map(
+      (node) => node.textContent ?? '',
+    );
+    expect(labels[0]).toBe('Files');
+    expect(labels.slice(0, 3)).toContain('Code');
+    expect(labels.indexOf('Code')).toBeLessThan(4);
+  });
+
+  it('opens the editor on double-click', async () => {
+    desktop();
+    await waitFor(() => expect(document.querySelector('.desktop-icon[aria-label="Code"]')).toBeTruthy());
+    const icon = document.querySelector('.desktop-icon[aria-label="Code"]') as HTMLElement;
+    fireEvent.doubleClick(icon);
+    await waitFor(() => expect(useWindows.getState().windows.some((win) => win.appId === 'code')).toBe(true));
+  });
+
+  it('sits inside the eight dock slots so the panel shows it', () => {
+    expect(DEFAULT_DESKTOP_APPS.indexOf('code')).toBeLessThan(3);
+    expect(DEFAULT_FAVORITES.indexOf('code')).toBeLessThan(8);
+    expect(new Set(DEFAULT_FAVORITES).size).toBe(DEFAULT_FAVORITES.length);
+  });
+
+  it('renders a Code button in the panel dock', async () => {
+    render(
+      <Panel
+        metrics={{
+          viewportWidth: 1280,
+          viewportHeight: 800,
+          panelThickness: 54,
+          workArea: { x: 0, y: 0, width: 1280, height: 746 },
+          isMobile: false,
+        }}
+        onLock={() => {}}
+        onShutdown={() => {}}
+        onRestart={() => {}}
+      />,
+    );
+    await waitFor(() => expect(document.querySelector('.panel')).toBeTruthy());
+    const dockTitles = Array.from(document.querySelectorAll('.panel__button')).map((node) =>
+      node.getAttribute('title'),
+    );
+    // The panel renders the first eight favourites; Code is in that set.
+    expect(dockTitles).toContain('Code');
+  });
+
+  it('moves Code to the front when an older profile is migrated', () => {
+    const v3 = {
+      installed: ['files', 'browser', 'code', 'terminal'] as AppId[],
+      favorites: ['files', 'browser', 'writer', 'calc', 'notes', 'accounting', 'games', 'code'] as AppId[],
+      recent: [],
+      desktopApps: ['files', 'browser', 'writer', 'code', 'settings'] as AppId[],
+    };
+    const migrated = migrateLauncherState(v3, 3);
+    expect(migrated.desktopApps.indexOf('code')).toBe(1);
+    expect(migrated.favorites.indexOf('code')).toBe(2);
+    // everything else keeps its relative order
+    expect(migrated.desktopApps.filter((id) => id !== 'code')).toEqual(['files', 'browser', 'writer', 'settings']);
+    expect(migrated.desktopApps).toHaveLength(v3.desktopApps.length);
+    expect(migrated.favorites).toHaveLength(v3.favorites.length);
+  });
+
+  it('adds Code when a pre-Code profile never had it', () => {
+    const v2 = { installed: ['files'] as AppId[], favorites: ['files'] as AppId[], recent: [], desktopApps: ['files'] as AppId[] };
+    const migrated = migrateLauncherState(v2, 2);
+    expect(migrated.desktopApps).toEqual(['files', 'code']);
+    expect(migrated.favorites).toEqual(['files', 'code']);
+  });
+
+  it('never runs on a current profile, so a removed icon stays removed', () => {
+    const current = {
+      installed: ['files'] as AppId[],
+      favorites: ['files'] as AppId[],
+      recent: [],
+      desktopApps: ['files'] as AppId[],
+    };
+    const migrated = migrateLauncherState(current, 4);
+    expect(migrated.desktopApps).toEqual(['files']);
+    expect(migrated.favorites).toEqual(['files']);
   });
 });
