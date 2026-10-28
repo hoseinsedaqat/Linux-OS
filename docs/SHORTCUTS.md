@@ -118,3 +118,13 @@ explanation — the shell only sees the simulated virtual file system.
 | Click a cell | Place your mark |
 | “Two players” | Alternate X and O on the same screen |
 | Easy / Medium / Hard | Random / optimal 65 % / full minimax opponent |
+
+### Code (editor)
+| Input | Action |
+| --- | --- |
+| `Ctrl/Cmd + S` | Save the active file back into the virtual file system |
+| `Ctrl/Cmd + F` | Open the find panel (match count, next/previous with wrap-around) |
+| `Enter` / `Escape` | Jump to the next match / close the find panel |
+| `Tab` / `Shift + Tab` | Indent or outdent the selection (multi-line aware) |
+| `↑` `↓` / `Enter` | Explorer: move the cursor / open a file |
+| Click a tab's `×` | Close the tab (with a guard when the file has unsaved changes) |

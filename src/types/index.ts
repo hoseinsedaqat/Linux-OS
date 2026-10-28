@@ -26,7 +26,8 @@ export type AppId =
   | 'tictactoe'
   | 'music'
   | 'photos'
-  | 'weather';
+  | 'weather'
+  | 'code';
 
 export type Language = 'en' | 'fa';
 export type ThemeMode = 'dark' | 'light';

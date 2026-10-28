@@ -117,7 +117,7 @@ calendar) or `en-US`. A missing Persian entry falls back to English rather than 
 ## 9. Testing strategy
 
 See `docs/TESTING.md`. Unit tests cover pure logic (formula engine, totals, path helpers) and
-component tests drive real interactions against the stores. The 30-point checklist is executed
+component tests drive real interactions against the stores. The 61-point checklist is executed
 manually against a production build before a release.
 
 ## 10. Extension checklist
@@ -145,3 +145,42 @@ Adding an app:
 | Sounds | `core/audio/sfx.ts` | Web Audio synthesis, gated by `settings.sounds` and the simulated volume. |
 | PWA | `public/sw.js`, `core/pwa/register.ts`, `public/manifest.webmanifest` | Shell precache, network-first navigations, no caching of third-party APIs. |
 | Weather | `apps/weather/weatherLogic.ts` | WMO vocabulary + payload mapping kept pure for unit tests. |
+
+## 12. The Code editor (round 3)
+
+`src/apps/code/codeUtils.ts` holds the pure half and is the only part the tests touch:
+
+| Export | Responsibility |
+| --- | --- |
+| `detectLanguage(path)` / `LANGUAGE_LABEL` | Extension → language id and human label (ts, js, json, css, html, md, sh, txt). |
+| `tokenize(code, language)` | Returns `{ kind, value }[]` per line: `comment`, `string`, `number`, `keyword`, `function`, `property`, `plain`. A `memberAccess` look-behind stops keyword-like property names (`obj.return`) from being painted as keywords. |
+| `findInFile(text, query)` | Case-insensitive match list with offsets, used by the find panel for the count and wrap-around. |
+| `indentSelection(value, start, end, outdent)` | Multi-line indent/outdent that returns the new text plus the new selection, so `Tab` behaves like an editor and not like a focus trap. |
+| `caretPosition(value, offset)` / `lineCount(value)` | Status-bar line/column and gutter height. |
+
+`CodeApp.tsx` is the view only: an explorer over `~/Projects` (seeded from `STARTER_FILES` on first
+open), a tab strip with per-file dirty state, a line-number gutter, a `<pre>` highlight layer under a
+transparent `<textarea>` (which keeps native undo, selection and IME behaviour), a find panel and a
+status bar. Saving calls the same `updateContent(id, text)` action Files uses, so both apps agree on
+file content. Below 760 px the explorer becomes an overlay (`.code__sidebar--overlay`).
+
+Code extensions are routed here by `core/apps/types.ts`: `CODE_EXTENSIONS` maps `.ts/.tsx/.js/.jsx/
+.json/.css/.html/.md/.sh` to the `code` app, so opening such a file from Files or the desktop lands in
+the editor instead of the note viewer.
+
+## 13. Responsive contract (round 3)
+
+Breakpoints are owned per stylesheet and asserted by `tests/responsive.test.ts`, so a refactor that
+drops one fails CI:
+
+| Sheet | Breakpoints | Notes |
+| --- | --- | --- |
+| `shell.css` | 900, 760, 720, 420 | Panel compaction, palette/overview/shortcut-sheet/screensaver full-width. |
+| `apps.css` | 860, 640 | Generic app layouts: sidebars collapse, grids reflow. |
+| `games.css` | 860, 620, 400 | One card per row, board cell `--mines-cell` 22 → 18 → 15 px. |
+| `media.css` | 860, 640 | Music/Photos/Weather panes stack. |
+| `code.css` | 760 | Explorer becomes an overlay; reduced-motion block added. |
+
+Rules that the test enforces: no fixed `width` above 640 px in the round-3 sheets, only
+`repeat(auto-fill, minmax(...))` for card grids, `@media (prefers-reduced-motion: reduce)` in every
+animated sheet, and the viewport/PWA meta tags in `index.html`.

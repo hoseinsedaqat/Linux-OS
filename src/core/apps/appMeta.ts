@@ -241,6 +241,17 @@ export const APP_META: Record<AppId, AppDefinition> = {
     singleton: true,
     installed: true,
   },
+  code: {
+    id: 'code',
+    name: 'Code',
+    description: 'A focused code editor for the files in your Projects folder.',
+    category: 'Development',
+    icon: 'code',
+    color: '#4aa8ff',
+    defaultSize: { width: 1080, height: 720 },
+    minSize: { width: 480, height: 380 },
+    installed: true,
+  },
   music: {
     id: 'music',
     name: 'Music',

@@ -801,6 +801,39 @@ const fa: Record<string, string> = {
   'A gallery over the virtual Pictures folder.': 'گالری‌ای روی پوشهٔ مجازی تصاویر.',
   'Live forecasts from Open-Meteo.': 'پیش‌بینی زنده از Open-Meteo.',
 
+  // ---------- NOVA Code ----------
+  Code: 'کد',
+  'A focused code editor for the files in your Projects folder.': 'ویرایشگر کد برای فایل‌های پوشهٔ Projects.',
+  Editor: 'ویرایشگر',
+  Explorer: 'کاوشگر',
+  'Hide explorer': 'بستن کاوشگر',
+  'Show explorer': 'نمایش کاوشگر',
+  'Collapse sidebar': 'جمع‌کردن نوار کنار',
+  'Expand sidebar': 'بازکردن نوار کنار',
+  'New file': 'فایل جدید',
+  'Filter files': 'فیلتر فایل‌ها',
+  'Filter files…': 'فیلتر فایل‌ها…',
+  'No files yet': 'هنوز فایلی نیست',
+  'Open a file from the explorer': 'از کاوشگر یک فایل باز کنید',
+  'Close tab': 'بستن زبانه',
+  'Save (Ctrl+S)': 'ذخیره (Ctrl+S)',
+  Unsaved: 'ذخیره‌نشده',
+  'Find in file': 'جست‌وجو در فایل',
+  'Find in file…': 'جست‌وجو در فایل…',
+  'Close find': 'بستن جست‌وجو',
+  '{count} matches': '{count} تطابق',
+  'Editing {name}': 'ویرایش {name}',
+  'Ln {line}, Col {col}': 'خط {line}، ستون {col}',
+  '{n} lines': '{n} خط',
+  'A focused editor for the files in ~/Projects. Everything you type is saved to the virtual file system, never to a server.':
+    'ویرایشگری متمرکز برای فایل‌های ‎~/Projects. هر چیزی که تایپ کنید در فایل‌سیستم مجازی ذخیره می‌شود، نه روی سرور.',
+  'saves the current file': 'فایل جاری را ذخیره می‌کند',
+  'searches inside the file': 'داخل فایل جست‌وجو می‌کند',
+  'indents and outdents the selection': 'انتخاب را تودرتو یا از تودرتویی خارج می‌کند',
+  'Open a file': 'بازکردن فایل',
+  'Create a file': 'ساختن فایل',
+  'This file cannot be edited here': 'این فایل این‌جا قابل ویرایش نیست',
+
 };
 
 const faOverrides = fa;

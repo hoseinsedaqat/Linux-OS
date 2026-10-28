@@ -1,4 +1,5 @@
 import type { AppId, FSNode, WindowInstance } from '@/types';
+import { extensionOf } from '@/utils';
 
 export interface AppWindowProps {
   win: WindowInstance;
@@ -10,6 +11,12 @@ export interface NovaApp {
   component: React.ComponentType<AppWindowProps>;
 }
 
+/** Files that belong in the code editor rather than the word processor. */
+export const CODE_EXTENSIONS = new Set([
+  'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs', 'json', 'css', 'scss',
+  'html', 'htm', 'py', 'sh', 'yml', 'yaml',
+]);
+
 export function fileAppFor(node: FSNode): AppId {
   switch (node.kind) {
     case 'spreadsheet':
@@ -18,8 +25,9 @@ export function fileAppFor(node: FSNode): AppId {
       return 'impress';
     case 'note':
       return 'notes';
-    case 'document':
     case 'text':
+      return CODE_EXTENSIONS.has(extensionOf(node.name)) ? 'code' : 'writer';
+    case 'document':
       return 'writer';
     case 'image':
       return 'files';
