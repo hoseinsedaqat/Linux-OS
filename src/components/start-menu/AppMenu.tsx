@@ -151,6 +151,9 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
     <AnimatePresence>
       {open && (
         <>
+          {/* This click-catcher must stay BELOW .appmenu (z-index 7800);
+              any higher and it swallows every hover and click inside the
+              menu, including the power actions in the footer. */}
           <motion.div
             key="appmenu-backdrop"
             className="appmenu-backdrop"
@@ -159,7 +162,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onMouseDown={closeOverlays}
-            style={{ position: 'fixed', inset: 0, zIndex: 7900 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 7700 }}
           />
           <motion.div
             key="appmenu-panel"

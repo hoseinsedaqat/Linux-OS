@@ -310,18 +310,67 @@ html[dir='rtl'] .select--compact {
   text-align: center;
 }
 
+/* Workspace preparation indicator. It used to be a full-screen scrim at
+   z-index 5000, which covered every desktop icon — it is now a compact glass
+   card that never hides the shell. */
 .desktop__loading {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  bottom: calc(var(--panel-h, 54px) + 22px);
+  transform: translateX(-50%);
   z-index: 5000;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: rgba(5, 8, 12, 0.72);
+  gap: 11px;
+  padding: 10px 16px 10px 12px;
+  border-radius: 999px;
+  background: var(--popover-bg);
+  border: 1px solid var(--border-2);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(170%);
   color: var(--text-2);
-  font-size: 12px;
-  backdrop-filter: blur(6px);
+  font-size: 11.5px;
+  font-weight: 500;
+  pointer-events: none;
+  animation: loading-card-in 320ms var(--ease) both;
+}
+
+.desktop__loading-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  letter-spacing: 0.01em;
+}
+
+.desktop__loading-label::after {
+  content: '';
+  width: 16px;
+  height: 2px;
+  margin-inline-start: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.9), transparent);
+  background-size: 200% 100%;
+  animation: loading-sheen 1.2s linear infinite;
+}
+
+@keyframes loading-card-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes loading-sheen {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
 }
 
 .desktop__monitor-label {
@@ -1974,14 +2023,16 @@ html[dir='rtl'] .select--compact {
 }
 
 .calculator__display {
-  padding: 18px 18px 12px;
+  padding: 20px 22px 14px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
   border-bottom: 1px solid var(--border-1);
-  min-height: 96px;
+  min-height: 104px;
+  flex: none;
   justify-content: flex-end;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.04), transparent);
 }
 
 .calculator__expression {
@@ -1994,7 +2045,7 @@ html[dir='rtl'] .select--compact {
 }
 
 .calculator__result {
-  font-size: calc(30px * var(--font-scale));
+  font-size: clamp(30px, 3.4vw, 56px);
   font-weight: 300;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
@@ -2012,16 +2063,20 @@ html[dir='rtl'] .select--compact {
 .calculator__keys {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 12px;
+  grid-auto-rows: minmax(46px, 1fr);
+  gap: 8px;
+  padding: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .calc-key {
-  height: 48px;
-  border-radius: 11px;
+  min-height: 46px;
+  height: 100%;
+  border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--border-1);
-  font-size: calc(15px * var(--font-scale));
+  font-size: calc(16px * var(--font-scale));
   font-weight: 500;
   color: var(--text-1);
   display: grid;
@@ -2058,9 +2113,10 @@ html[dir='rtl'] .select--compact {
 
 .calculator__history {
   border-top: 1px solid var(--border-1);
-  padding: 10px 14px;
+  padding: 10px 16px;
   overflow-y: auto;
-  max-height: 130px;
+  flex: 0 1 auto;
+  max-height: 26%;
 }
 
 .calculator__history-row {
