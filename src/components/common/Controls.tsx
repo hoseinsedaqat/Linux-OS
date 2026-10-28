@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Inbox } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/utils';
@@ -41,18 +41,40 @@ interface SliderRowProps {
   format?: (value: number) => string;
   icon?: LucideIcon;
   className?: string;
+  hint?: ReactNode;
+  disabled?: boolean;
 }
 
-export function SliderRow({ label, value, min = 0, max = 100, step = 1, onChange, format, icon: Icon, className }: SliderRowProps) {
-  const progress = ((value - min) / (max - min)) * 100;
+/**
+ * The single slider used everywhere (quick settings, Settings app, ...).
+ *
+ * The filled part of the track is driven by `--slider-progress`, and because
+ * native range inputs are mirrored in RTL layouts the gradient direction is
+ * flipped there too — otherwise the fill and the thumb disagree in Persian.
+ */
+export function SliderRow({
+  label,
+  value,
+  min = 0,
+  max = 100,
+  step = 1,
+  onChange,
+  format,
+  icon: Icon,
+  className,
+  hint,
+  disabled,
+}: SliderRowProps) {
+  const clamped = Math.min(max, Math.max(min, value));
+  const progress = ((clamped - min) / (max - min)) * 100;
   return (
-    <div className={cn('slider-row', className)}>
+    <div className={cn('slider-row', disabled && 'is-disabled', className)}>
       <div className="slider-row__head">
         <span className="slider-row__label">
           {Icon && <Icon size={14} strokeWidth={1.9} />}
           {label}
         </span>
-        <span className="slider-row__value numeric">{format ? format(value) : value}</span>
+        <span className="slider-row__value numeric">{format ? format(clamped) : clamped}</span>
       </div>
       <input
         className="slider"
@@ -60,11 +82,14 @@ export function SliderRow({ label, value, min = 0, max = 100, step = 1, onChange
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={clamped}
+        disabled={disabled}
         aria-label={typeof label === 'string' ? label : undefined}
-        style={{ ['--slider-progress' as string]: `${progress}%` }}
+        aria-valuetext={format ? format(clamped) : String(clamped)}
+        style={{ ['--slider-progress' as string]: `${progress}%` } as CSSProperties}
         onChange={(event) => onChange(Number(event.target.value))}
       />
+      {hint && <span className="slider-row__hint">{hint}</span>}
     </div>
   );
 }

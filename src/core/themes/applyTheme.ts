@@ -46,6 +46,8 @@ export const WALLPAPERS: Array<{ id: string; name: string; description: string; 
   { id: 'wallpaper-graphite', name: 'Graphite', description: 'Neutral, quiet, focused', tone: 'dark' },
   { id: 'wallpaper-forest', name: 'Forest Night', description: 'Cool green undergrowth', tone: 'dark' },
   { id: 'wallpaper-dawn', name: 'Soft Dawn', description: 'Light, airy, made for day mode', tone: 'light' },
+  { id: 'wallpaper-ember', name: 'Ember', description: 'Warm coals under a dark sky', tone: 'dark' },
+  { id: 'wallpaper-glass', name: 'Midnight Glass', description: 'Cool graphite with a light sweep', tone: 'dark' },
 ];
 
 export function wallpaperClass(id: string): string {

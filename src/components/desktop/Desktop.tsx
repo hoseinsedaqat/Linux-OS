@@ -4,17 +4,23 @@ import {
   FilePlus2,
   FileSpreadsheet,
   FileText,
+  FolderOpen,
   FolderPlus,
+  Grid2x2,
   ImageIcon,
   MonitorCog,
   NotebookPen,
+  PinOff,
   Presentation,
   Settings2,
   Sparkles,
+  Star,
+  StarOff,
   Trash2,
   User,
+  Wand2,
 } from 'lucide-react';
-import type { FSNode, SettingsState } from '@/types';
+import type { AppId, FSNode, SettingsState } from '@/types';
 import { useSettings } from '@/core/themes/settingsStore';
 import { wallpaperClass } from '@/core/themes/applyTheme';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
@@ -32,6 +38,8 @@ import { AppIcon } from '@/components/common/AppIcon';
 import { useContextMenu } from '@/components/common/ContextMenu';
 import { PromptDialog } from '@/components/common/PromptDialog';
 import { NovaLogo } from '@/components/common/NovaLogo';
+import { Osd } from '@/components/common/Osd';
+import { AppShortcutDialog } from '@/components/desktop/AppShortcutDialog';
 import { useT } from '@/core/localization/i18n';
 import { useUiStatus } from '@/core/persistence/kvStore';
 import { notify, notifyError } from '@/core/notifications/notificationsStore';
@@ -69,17 +77,6 @@ function canvasFor(viewport: { width: number; height: number }, resolution: Sett
   };
 }
 
-const SHORTCUTS: Array<{ key: string; appId: 'files' | 'browser' | 'writer' | 'calc' | 'accounting' | 'notes' | 'settings' | 'trash'; label: string }> = [
-  { key: 'computer', appId: 'files', label: 'Computer' },
-  { key: 'browser', appId: 'browser', label: 'Browser' },
-  { key: 'writer', appId: 'writer', label: 'Writer' },
-  { key: 'calc', appId: 'calc', label: 'Calc' },
-  { key: 'accounting', appId: 'accounting', label: 'Accounting' },
-  { key: 'notes', appId: 'notes', label: 'Notes' },
-  { key: 'settings', appId: 'settings', label: 'Settings' },
-  { key: 'trash', appId: 'trash', label: 'Trash' },
-];
-
 export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   const t = useT();
   const settings = useSettings();
@@ -89,9 +86,12 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   const trashNode = useFiles((state) => state.trashNode);
   const renameNode = useFiles((state) => state.renameNode);
   const openApp = useWindows((state) => state.openApp);
+  const openWindows = useWindows((state) => state.windows);
   const minimizeAll = useWindows((state) => state.minimizeAll);
   const overlay = useShell((state) => state.overlay);
   const toggleOverlay = useShell((state) => state.toggleOverlay);
+  const desktopApps = useLauncher((state) => state.desktopApps);
+  const installed = useLauncher((state) => state.installed);
   const favorites = useLauncher((state) => state.favorites);
   const menu = useContextMenu();
   const uiWarning = useUiStatus((state) => state.storageWarning);
@@ -102,8 +102,14 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     height: window.innerHeight,
   }));
   const [selected, setSelected] = useState<string | null>(null);
+  const [shortcutDialog, setShortcutDialog] = useState(false);
   const [prompt, setPrompt] = useState<{ mode: 'folder' | 'text' | 'rename'; node?: FSNode } | null>(null);
   const [introVisible, setIntroVisible] = useState(!sessionStorage.getItem('nova.introShown'));
+
+  const coarsePointer = useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches,
+    [],
+  );
 
   useEffect(() => {
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
@@ -148,9 +154,17 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     return () => window.clearTimeout(timer);
   }, [ready, openApp]);
 
-  const desktopFolder = nodes[FOLDER_IDS.desktop];
-  const desktopFiles = desktopFolder ? childrenOf(nodes, FOLDER_IDS.desktop) : [];
+  const desktopFiles = useMemo(
+    () => (nodes[FOLDER_IDS.desktop] ? childrenOf(nodes, FOLDER_IDS.desktop) : []),
+    [nodes],
+  );
   const trashCount = Object.values(nodes).filter((node) => node.trashed && !node.system).length;
+
+  /** App icons = the persisted desktop order, restricted to installed apps. */
+  const appIcons = useMemo(
+    () => desktopApps.filter((id) => installed.includes(id) && APP_META[id]),
+    [desktopApps, installed],
+  );
 
   const createItem = useCallback(
     (kind: 'folder' | 'text' | 'document' | 'spreadsheet' | 'presentation' | 'note') => {
@@ -175,14 +189,16 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
         return;
       }
       notify(t('Created'), { body: created.name, kind: 'success' });
+      setSelected(created.id);
       openNode(created);
     },
-    [nodes, openNode, t],
+    [nodes, t],
   );
 
   const desktopMenu = (event: React.MouseEvent) => {
     event.preventDefault();
     menu.open(event, [
+      { id: 'head-new', heading: t('Create new') },
       { id: 'new-folder', label: t('New Folder'), icon: FolderPlus, onClick: () => createItem('folder') },
       { id: 'new-text', label: t('New Text File'), icon: FilePlus2, onClick: () => createItem('text') },
       { id: 'new-doc', label: t('New Document'), icon: FileText, onClick: () => createItem('document') },
@@ -190,6 +206,12 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
       { id: 'new-deck', label: t('New Presentation'), icon: Presentation, onClick: () => createItem('presentation') },
       { id: 'new-note', label: t('New Note'), icon: NotebookPen, onClick: () => createItem('note') },
       { id: 'sep-1', separator: true },
+      {
+        id: 'add-shortcut',
+        label: t('Add app shortcut…'),
+        icon: Grid2x2,
+        onClick: () => setShortcutDialog(true),
+      },
       {
         id: 'wallpaper',
         label: t('Change Wallpaper'),
@@ -211,11 +233,75 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
         onClick: () => minimizeAll(),
       },
       {
+        id: 'tidy',
+        label: t('Restore default icons'),
+        icon: Wand2,
+        onClick: () => {
+          useLauncher.getState().resetDesktop();
+          notify(t('Desktop icons restored'), { body: t('Default set'), kind: 'success' });
+        },
+      },
+      {
         id: 'open-files',
         label: t('Open in Files'),
-        icon: FileText,
+        icon: FolderOpen,
         onClick: () => openApp('files', { folderPath: '/home/demo/Desktop' }),
       },
+    ]);
+  };
+
+  const appMenu = (event: React.MouseEvent, appId: AppId) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const isPinned = favorites.includes(appId);
+    const meta = APP_META[appId];
+    menu.open(event, [
+      { id: 'open', label: t('Open'), onClick: () => openApp(appId) },
+      { id: 'sep-0', separator: true },
+      { id: 'head-app', heading: t(meta.name) },
+      {
+        id: 'remove-desktop',
+        label: t('Remove from Desktop'),
+        icon: PinOff,
+        onClick: () => {
+          useLauncher.getState().removeFromDesktop(appId);
+          notify(t('Removed from Desktop'), { body: t(meta.name), kind: 'info' });
+        },
+      },
+      {
+        id: 'pin',
+        label: isPinned ? t('Unpin from panel') : t('Pin to panel'),
+        icon: isPinned ? StarOff : Star,
+        onClick: () => useLauncher.getState().toggleFavorite(appId),
+      },
+      {
+        id: 'move-left',
+        label: t('Move left'),
+        disabled: desktopApps.indexOf(appId) <= 0,
+        onClick: () => useLauncher.getState().moveDesktopApp(appId, -1),
+      },
+      {
+        id: 'move-right',
+        label: t('Move right'),
+        disabled: desktopApps.indexOf(appId) >= desktopApps.length - 1,
+        onClick: () => useLauncher.getState().moveDesktopApp(appId, 1),
+      },
+      ...(appId === 'trash'
+        ? [
+            { id: 'sep-1', separator: true },
+            {
+              id: 'empty',
+              label: t('Empty Trash'),
+              icon: Trash2,
+              danger: true,
+              disabled: trashCount === 0,
+              onClick: () => {
+                useFiles.getState().emptyTrash();
+                notify(t('Trash emptied'), { kind: 'info' });
+              },
+            },
+          ]
+        : []),
     ]);
   };
 
@@ -267,21 +353,27 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     ]);
   };
 
-  const quickMenu = (event: React.MouseEvent, appId: (typeof SHORTCUTS)[number]['appId']) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const isPinned = favorites.includes(appId);
-    menu.open(event, [
-      { id: 'open', label: t('Open'), onClick: () => openApp(appId) },
-      {
-        id: 'pin',
-        label: isPinned ? t('Unpin') : t('Pin'),
-        onClick: () => useLauncher.getState().toggleFavorite(appId),
-      },
-      ...(appId === 'trash'
-        ? [{ id: 'empty', label: t('Empty Trash'), danger: true, onClick: () => useFiles.getState().emptyTrash() }]
-        : []),
-    ]);
+  const onKeyDown = (event: React.KeyboardEvent) => {
+    if (!selected) return;
+    if (event.key === 'Enter') {
+      const appId = appIcons.find((id) => `app:${id}` === selected);
+      if (appId) openApp(appId);
+      const file = desktopFiles.find((node) => node.id === selected);
+      if (file) openNode(file);
+    }
+    if (event.key === 'F2') {
+      const file = desktopFiles.find((node) => node.id === selected);
+      if (file && !file.system) setPrompt({ mode: 'rename', node: file });
+    }
+    if (event.key === 'Delete') {
+      const file = desktopFiles.find((node) => node.id === selected);
+      if (file && !file.system) {
+        trashNode(file.id);
+        notify(t('Moved to Trash'), { body: file.name, kind: 'info' });
+        setSelected(null);
+      }
+    }
+    if (event.key === 'Escape') setSelected(null);
   };
 
   const wallpaperStyle = useMemo<React.CSSProperties>(() => {
@@ -291,7 +383,7 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     return {};
   }, [settings.wallpaper, settings.customWallpaper]);
 
-  const dimOpacity = Math.max(0, Math.min(0.82, (100 - settings.brightness) / 118));
+  const dimOpacity = Math.max(0, Math.min(0.86, (100 - settings.brightness) / 100 * 0.86));
 
   return (
     <div className="nova-root desktop" onContextMenu={desktopMenu} style={{ background: '#04070a' }}>
@@ -314,8 +406,12 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
           } as React.CSSProperties
         }
         onPointerDown={() => setSelected(null)}
+        onKeyDown={onKeyDown}
       >
-        <div className={cn('wallpaper', wallpaperClass(settings.wallpaper))} style={wallpaperStyle} />
+        <div className={cn('wallpaper', wallpaperClass(settings.wallpaper))} style={wallpaperStyle}>
+          <span className="wallpaper__grain" aria-hidden />
+          <span className="wallpaper__vignette" aria-hidden />
+        </div>
 
         {uiWarning && (
           <div className="desktop__warning">
@@ -325,43 +421,61 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
 
         <div className="desktop__surface">
           <div className="desktop__icons" role="list">
-            {SHORTCUTS.map((shortcut) => {
-              const meta = APP_META[shortcut.appId];
+            {appIcons.map((appId) => {
+              const meta = APP_META[appId];
+              const key = `app:${appId}`;
               return (
                 <button
-                  key={shortcut.key}
+                  key={key}
                   role="listitem"
-                  className={cn('desktop-icon', selected === shortcut.key && 'is-selected')}
+                  type="button"
+                  className={cn('desktop-icon', selected === key && 'is-selected')}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => setSelected(shortcut.key)}
-                  onDoubleClick={() => openApp(shortcut.appId)}
-                  onContextMenu={(event) => quickMenu(event, shortcut.appId)}
-                  title={t(meta.name)}
+                  onClick={() => {
+                    setSelected(key);
+                    // Touch screens have no double-click gesture.
+                    if (coarsePointer) openApp(appId);
+                  }}
+                  onDoubleClick={() => {
+                    if (!coarsePointer) openApp(appId);
+                  }}
+                  onContextMenu={(event) => appMenu(event, appId)}
+                  title={t(meta.description)}
+                  aria-label={t(meta.name)}
                 >
-                  {shortcut.appId === 'trash' ? (
-                    <span className="app-tile" style={{ ['--tile-color' as string]: '#6f8099' }}>
-                      <Trash2 size={19} color="#fff" />
-                      {trashCount > 0 && <span className="desktop-icon__badge">{trashCount}</span>}
-                    </span>
-                  ) : (
-                    <AppIcon appId={shortcut.appId} size="md" />
-                  )}
-                  <span className="desktop-icon__label">{t(shortcut.label)}</span>
+                  <span className="desktop-icon__tile">
+                    <AppIcon appId={appId} size="xl" />
+                    {appId === 'trash' && trashCount > 0 && <span className="desktop-icon__badge">{trashCount}</span>}
+                    {openWindows.some((win) => win.appId === appId) && (
+                      <span className="desktop-icon__dot" aria-hidden />
+                    )}
+                  </span>
+                  <span className="desktop-icon__label">{t(meta.name)}</span>
                 </button>
               );
             })}
+
             {desktopFiles.map((node) => (
               <button
                 key={node.id}
                 role="listitem"
+                type="button"
                 className={cn('desktop-icon', selected === node.id && 'is-selected')}
                 onPointerDown={(event) => event.stopPropagation()}
-                onClick={() => setSelected(node.id)}
-                onDoubleClick={() => openNode(node)}
+                onClick={() => {
+                  setSelected(node.id);
+                  if (coarsePointer) openNode(node);
+                }}
+                onDoubleClick={() => {
+                  if (!coarsePointer) openNode(node);
+                }}
                 onContextMenu={(event) => iconMenu(event, node)}
                 title={node.name}
+                aria-label={node.name}
               >
-                <FileGlyph node={node} />
+                <span className="desktop-icon__tile">
+                  <FileGlyph node={node} />
+                </span>
                 <span className="desktop-icon__label">{node.name}</span>
               </button>
             ))}
@@ -413,7 +527,10 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
       )}
 
       <Toasts />
+      <Osd />
       {menu.node}
+
+      <AppShortcutDialog open={shortcutDialog} onClose={() => setShortcutDialog(false)} />
 
       <PromptDialog
         open={prompt?.mode === 'folder'}
@@ -425,7 +542,10 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
           const id = nodes[FOLDER_IDS.desktop]?.id;
           if (!id) return;
           const created = createFolder(id, name);
-          if (created) notify(t('Folder created'), { body: created.name, kind: 'success' });
+          if (created) {
+            notify(t('Folder created'), { body: created.name, kind: 'success' });
+            setSelected(created.id);
+          }
         }}
       />
       <PromptDialog
@@ -438,7 +558,10 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
           const id = nodes[FOLDER_IDS.desktop]?.id;
           if (!id) return;
           const created = useFiles.getState().createFile(id, name, { content: '' });
-          if (created) openNode(created);
+          if (created) {
+            setSelected(created.id);
+            openNode(created);
+          }
         }}
       />
       <PromptDialog
@@ -453,21 +576,19 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
           if (!ok) notifyError(t('Name already exists'));
         }}
       />
-
     </div>
   );
 }
 
 function FileGlyph({ node }: { node: FSNode }) {
-  const style = { color: '#e8eef6' };
-  if (node.kind === 'folder') return <AppIcon appId="files" size="md" />;
-  if (node.kind === 'spreadsheet') return <AppIcon appId="calc" size="md" />;
-  if (node.kind === 'presentation') return <AppIcon appId="impress" size="md" />;
-  if (node.kind === 'document' || node.kind === 'text') return <AppIcon appId="writer" size="md" />;
-  if (node.kind === 'note') return <AppIcon appId="notes" size="md" />;
+  if (node.kind === 'folder') return <AppIcon appId="files" size="xl" />;
+  if (node.kind === 'spreadsheet') return <AppIcon appId="calc" size="xl" />;
+  if (node.kind === 'presentation') return <AppIcon appId="impress" size="xl" />;
+  if (node.kind === 'note') return <AppIcon appId="notes" size="xl" />;
+  if (node.kind === 'document' || node.kind === 'text') return <AppIcon appId="writer" size="xl" />;
   return (
-    <span className="app-tile" style={{ ['--tile-color' as string]: '#8899ac' }}>
-      <FileText size={19} color="#fff" style={style} />
+    <span className="app-tile app-tile--xl" style={{ ['--tile-color' as string]: '#8899ac' }}>
+      <FileText size={26} strokeWidth={1.8} color="#fff" />
     </span>
   );
 }

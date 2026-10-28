@@ -559,59 +559,120 @@ html[dir='rtl'] .switch[data-on='true']::after {
   transform: translateX(-16px);
 }
 
-/* slider */
+/* slider ------------------------------------------------------------------ */
+/* One control for every range in the shell. The filled part is driven by
+   --slider-progress so the thumb and the fill can never disagree, and the
+   gradient flips in RTL where the browser mirrors the input. */
+
 .slider {
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  height: 18px;
+  height: 20px;
   background: transparent;
   cursor: pointer;
+  touch-action: pan-y;
 }
 
 .slider::-webkit-slider-runnable-track {
-  height: 5px;
+  height: 6px;
   border-radius: 99px;
   background: linear-gradient(
     to right,
-    rgba(var(--accent-rgb), 1) var(--value, 50%),
-    var(--surface-3) var(--value, 50%)
+    rgba(var(--accent-rgb), 1) 0%,
+    rgba(var(--accent-rgb), 0.92) var(--slider-progress, 0%),
+    rgba(255, 255, 255, 0.14) var(--slider-progress, 0%),
+    rgba(255, 255, 255, 0.14) 100%
   );
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35) inset;
 }
 
-.slider::-moz-range-track {
-  height: 5px;
-  border-radius: 99px;
-  background: var(--surface-3);
-}
-
-.slider::-moz-range-progress {
-  height: 5px;
-  border-radius: 99px;
-  background: var(--accent);
+html[dir='rtl'] .slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to left,
+    rgba(var(--accent-rgb), 1) 0%,
+    rgba(var(--accent-rgb), 0.92) var(--slider-progress, 0%),
+    rgba(255, 255, 255, 0.14) var(--slider-progress, 0%),
+    rgba(255, 255, 255, 0.14) 100%
+  );
 }
 
 .slider::-webkit-slider-thumb {
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -5px;
+  width: 15px;
+  height: 15px;
+  margin-top: -4.5px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid rgba(var(--accent-rgb), 1);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 1px 5px rgba(0, 0, 0, 0.45),
+    0 0 0 0 rgba(var(--accent-rgb), 0.4);
+  transition: box-shadow var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+
+.slider:hover::-webkit-slider-thumb,
+.slider:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 1px 6px rgba(0, 0, 0, 0.5),
+    0 0 0 6px rgba(var(--accent-rgb), 0.18);
+}
+
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+
+.slider::-moz-range-track {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.slider::-moz-range-progress {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--accent);
 }
 
 .slider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--accent);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='light'] .slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    rgba(var(--accent-rgb), 1) 0%,
+    rgba(var(--accent-rgb), 0.92) var(--slider-progress, 0%),
+    rgba(15, 25, 34, 0.13) var(--slider-progress, 0%),
+    rgba(15, 25, 34, 0.13) 100%
+  );
+}
+
+html[dir='rtl'][data-theme='light'] .slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to left,
+    rgba(var(--accent-rgb), 1) 0%,
+    rgba(var(--accent-rgb), 0.92) var(--slider-progress, 0%),
+    rgba(15, 25, 34, 0.13) var(--slider-progress, 0%),
+    rgba(15, 25, 34, 0.13) 100%
+  );
+}
+
+[data-theme='light'] .slider::-moz-range-track {
+  background: rgba(15, 25, 34, 0.13);
+}
+
+.slider:focus-visible {
+  outline: none;
 }
 
 .slider:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -855,10 +916,10 @@ html[dir='rtl'] .switch[data-on='true']::after {
 .context-menu {
   position: fixed;
   z-index: 9500;
-  min-width: 190px;
-  max-width: 290px;
-  padding: 5px;
-  border-radius: 10px;
+  min-width: 208px;
+  max-width: 300px;
+  padding: 6px;
+  border-radius: 14px;
   background: var(--popover-bg);
   border: 1px solid var(--border-2);
   box-shadow: var(--shadow-lg);
@@ -973,12 +1034,14 @@ html[dir='rtl'] .switch[data-on='true']::after {
   align-items: flex-start;
   gap: 10px;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 11px;
-  background: var(--popover-bg);
+  padding: 11px 13px;
+  border-radius: 15px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)),
+    var(--popover-bg);
   border: 1px solid var(--border-2);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(calc(var(--glass-blur) + 4px)) saturate(175%);
   animation: nova-slide-in var(--dur) var(--ease);
   text-align: start;
 }
@@ -1089,4 +1152,60 @@ html[dir='rtl'] .switch[data-on='true']::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+}
+
+/* ---------------- global polish ---------------- */
+
+:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.34);
+  color: #fff;
+}
+
+[data-theme='light'] ::selection {
+  color: #0b1622;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+[data-theme='light'] * {
+  scrollbar-color: rgba(13, 23, 33, 0.2) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+
+[data-theme='light'] ::-webkit-scrollbar-thumb {
+  background: rgba(13, 23, 33, 0.18);
+  background-clip: padding-box;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--accent);
 }

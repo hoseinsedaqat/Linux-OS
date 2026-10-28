@@ -9,6 +9,8 @@ import {
   Power,
   Search,
   Settings2,
+  MinusSquare,
+  PlusSquare,
   Star,
   StarOff,
   TerminalSquare,
@@ -17,6 +19,7 @@ import {
 import type { AppId } from '@/types';
 import { APP_META, APP_CATEGORIES, VISIBLE_APP_IDS } from '@/core/apps/appMeta';
 import { useLauncher } from '@/core/apps/launcherStore';
+import { notify } from '@/core/notifications/notificationsStore';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { useSettings } from '@/core/themes/settingsStore';
 import { useShell } from '@/core/apps/shellStore';
@@ -39,6 +42,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
   const reduceMotion = useSettings((state) => state.reduceMotion);
   const installed = useLauncher((state) => state.installed);
   const favorites = useLauncher((state) => state.favorites);
+  const desktopApps = useLauncher((state) => state.desktopApps);
   const recent = useLauncher((state) => state.recent);
   const toggleFavorite = useLauncher((state) => state.toggleFavorite);
   const closeOverlays = useShell((state) => state.closeOverlays);
@@ -241,6 +245,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
                     {apps.map((appId, index) => {
                       const meta = APP_META[appId];
                       const isPinned = favorites.includes(appId);
+                      const onDesktop = desktopApps.includes(appId);
                       return (
                         <button
                           key={appId}
@@ -257,6 +262,18 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
                                 onClick: () => toggleFavorite(appId),
                               },
                               {
+                                id: 'desktop',
+                                label: onDesktop ? t('Remove from Desktop') : t('Add to Desktop'),
+                                icon: onDesktop ? MinusSquare : PlusSquare,
+                                onClick: () => {
+                                  useLauncher.getState().toggleDesktop(appId);
+                                  notify(
+                                    onDesktop ? t('Removed from Desktop') : t('Added to Desktop'),
+                                    { body: t(meta.name), kind: onDesktop ? 'info' : 'success' },
+                                  );
+                                },
+                              },
+                              {
                                 id: 'new',
                                 label: t('Open in new window'),
                                 disabled: Boolean(meta.singleton),
@@ -271,7 +288,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
                           <AppIcon appId={appId} size="sm" />
                           <span className="app-tile-btn__text">
                             <span className="app-tile-btn__name">{t(meta.name)}</span>
-                            <span className="app-tile-btn__desc">{t(meta.category)}</span>
+                            <span className="app-tile-btn__desc">{t(meta.description)}</span>
                           </span>
                         </button>
                       );

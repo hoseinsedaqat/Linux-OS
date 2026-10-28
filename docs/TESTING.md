@@ -16,6 +16,7 @@ path a user hits when a browser blocks storage.
 | `tests/core.test.ts` | formatting/escape/extension helpers, the formula engine (arithmetic, functions, ranges, syntax errors), the spreadsheet engine (`=A1+A2*2`, `SUM`, circular refs, unknown functions), virtual file system seeding + create/rename/trash/restore/delete/unique names/system-folder protection/write-at-path, accounting line & invoice totals, derived payment status, dashboard totals, empty workspace. |
 | `tests/ui.test.tsx` | boot → skip → login → desktop, welcome window restoration, Applications menu search + launch, Quick Settings popover, and a smoke render of **every** app in the registry. |
 | `tests/apps.test.tsx` | Terminal command execution and `sudo` refusal, Notes creation + autosave into the VFS, Files folder creation through the prompt dialog, Accounting customer creation + required-field validation, Settings language switch and reduced-motion toggle. |
+| `tests/desktop.test.tsx` | Desktop surface: an icon for every installed app, column layout contract, adding/removing app shortcuts from the desktop and app-menu context menus, files created from the desktop appearing immediately, slider track fill/aria-value sync, shared volume/brightness OSD. |
 | `tests/interactions.test.tsx` | Calculator keypad evaluation, Browser navigation incl. the iframe fallback and the explicit blocked-host screen, Software Center install/uninstall, Calendar event creation, Trash restore from the UI, every Accounting tab and every Settings section rendering, accent/theme persistence. |
 
 ## The 30-point behaviour checklist
@@ -36,7 +37,11 @@ release. "✔" marks points that are also covered by automated tests.
 8. Window drag, resize from all eight handles, minimise, maximise (button and double-click), close, focus/z-order, snap preview.
 9. Window and desktop context menus only offer actions that work.
 10. Responsive: at ≤820 px windows open maximised, the panel stays usable, menus fit the screen.
-11. Brightness/volume/network/battery controls change *something visible* and are labelled as simulated.
+11. Brightness/volume/network/battery controls change *something visible* and are labelled as simulated. The slider fill tracks the thumb, the panel/Quick Settings/Settings app agree, and both sliders raise the shared on-screen display. `✔` (store + track fill)
+11a. Every installed app has a desktop icon; right-click → *Add app shortcut…* adds one and it appears
+    immediately; right-click an icon → *Remove from Desktop* removes it. `✔`
+11b. Right-click the desktop → *New document / New folder*: the new item is visible on the desktop at
+    once (the icon surface has a real height — regression guarded by `tests/desktop.test.tsx`). `✔`
 12. Quick Settings tiles and notification centre (dismiss, clear all, click-to-open) behave.
 
 ### Files

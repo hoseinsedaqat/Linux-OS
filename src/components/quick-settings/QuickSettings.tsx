@@ -9,6 +9,7 @@ import {
   Sun,
   SunMedium,
   Volume2,
+  VolumeX,
   Wifi,
   Lock,
   BellOff,
@@ -134,27 +135,21 @@ export function QuickSettings({ open, style, onClose, onLock, onShutdown, onRest
               </div>
 
               <SliderRow
-                label={
-                  <>
-                    <SunMedium size={13} /> {t('Brightness')}
-                  </>
-                }
+                label={t('Brightness')}
+                icon={SunMedium}
                 value={settings.brightness}
                 onChange={(value) => settings.set('brightness', value)}
                 format={(value) => `${value}%`}
               />
               <SliderRow
-                label={
-                  <>
-                    <Volume2 size={13} /> {t('Volume')}
-                  </>
-                }
+                label={t('Volume')}
+                icon={settings.volume === 0 ? VolumeX : Volume2}
                 value={settings.volume}
                 onChange={(value) => settings.set('volume', value)}
                 format={(value) => `${value}%`}
               />
 
-              <div className="qs__grid">
+              <div className="qs__grid qs__grid--media">
                 <button className="qs__tile" onClick={() => goSettings('display')}>
                   <span className="qs__tile-icon">
                     <Monitor size={15} />

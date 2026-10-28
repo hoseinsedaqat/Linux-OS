@@ -2,77 +2,85 @@
    NOVA Linux — design tokens
    Every colour used by the shell lives here as a CSS variable so themes
    can swap palettes without touching component styles.
+
+   Palette notes
+   -------------
+   The dark theme is a deep, slightly blue-violet night rather than a flat
+   grey: surfaces get progressively lighter as they come forward, and the
+   accent is used for focus, selection and "running" hints only. The light
+   theme is a warm paper tone, not pure white, so the glass panels keep
+   their depth in daylight.
    ================================================================== */
 
 :root {
   color-scheme: dark;
 
   /* accent (overridden by data-accent) */
-  --accent: #3ddc97;
-  --accent-rgb: 61, 220, 151;
-  --accent-2: #34c3ff;
-  --accent-contrast: #05140d;
+  --accent: #3ce3a4;
+  --accent-rgb: 60, 227, 164;
+  --accent-2: #62c9ff;
+  --accent-contrast: #04140d;
   --text-on-accent: #04120b;
 
   /* legacy aliases kept for older components */
-  --bg-0: #070b10;
-  --bg-1: #0b1118;
-  --bg-2: #101821;
+  --bg-0: #06080f;
+  --bg-1: #0a0e17;
+  --bg-2: #0f141f;
 
   /* surfaces */
-  --surface-1: #0e151d;
-  --surface-2: #131c26;
-  --surface-3: #1a2531;
-  --surface-inset: #0a1017;
-  --surface-solid: #0f1720;
-  --window-bg: #0e151d;
-  --window-header: linear-gradient(180deg, #18222d, #121a23);
-  --menu-bg: #121b24;
-  --popover-bg: rgba(16, 23, 31, 0.96);
-  --panel-bg: rgba(10, 15, 21, 0.82);
-  --panel-highlight: rgba(255, 255, 255, 0.06);
-  --input-bg: #0a1016;
-  --input-border: #26333f;
-  --code-bg: #0a1016;
+  --surface-1: #0d121c;
+  --surface-2: #121927;
+  --surface-3: #1a2232;
+  --surface-inset: #080d15;
+  --surface-solid: #0c111a;
+  --window-bg: #0b101a;
+  --window-header: linear-gradient(180deg, rgba(30, 40, 58, 0.96), rgba(16, 23, 35, 0.98));
+  --menu-bg: #101725;
+  --popover-bg: rgba(13, 18, 28, 0.94);
+  --panel-bg: rgba(11, 16, 25, 0.72);
+  --panel-highlight: rgba(255, 255, 255, 0.07);
+  --input-bg: #080d16;
+  --input-border: #253144;
+  --code-bg: #080d16;
 
   /* text */
-  --text-1: #e9eef5;
-  --text-2: #b3c0d0;
-  --text-3: #7f8fa3;
+  --text-1: #edf2f9;
+  --text-2: #a9b6c8;
+  --text-3: #76849a;
 
   /* lines */
-  --border-1: rgba(255, 255, 255, 0.08);
-  --border-2: rgba(255, 255, 255, 0.15);
+  --border-1: rgba(255, 255, 255, 0.075);
+  --border-2: rgba(255, 255, 255, 0.14);
   --border-strong: rgba(255, 255, 255, 0.26);
 
   /* states */
-  --hover: rgba(255, 255, 255, 0.065);
-  --active: rgba(255, 255, 255, 0.1);
-  --scrim: rgba(4, 7, 11, 0.6);
+  --hover: rgba(255, 255, 255, 0.062);
+  --active: rgba(255, 255, 255, 0.105);
+  --scrim: rgba(3, 6, 11, 0.62);
 
   /* semantic */
   --danger: #ff6b81;
   --danger-rgb: 255, 107, 129;
   --warning: #f2b64c;
-  --success: #3ddc97;
-  --info: #5aa9ff;
+  --success: #3ce3a4;
+  --info: #62c9ff;
 
   /* shape */
-  --radius-xs: 5px;
-  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --radius-sm: 9px;
   --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --radius-window: 12px;
+  --radius-lg: 17px;
+  --radius-xl: 24px;
+  --radius-window: 14px;
   --radius-pill: 999px;
 
   /* elevation */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 12px 32px -12px rgba(0, 0, 0, 0.65);
-  --shadow-lg: 0 30px 70px -24px rgba(0, 0, 0, 0.8);
-  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 34px 80px -30px rgba(0, 0, 0, 0.92),
-    0 8px 26px -14px rgba(0, 0, 0, 0.7);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.34);
+  --shadow-md: 0 14px 34px -14px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 34px 80px -28px rgba(0, 0, 0, 0.82), 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 40px 90px -34px rgba(0, 0, 0, 0.94),
+    0 10px 30px -16px rgba(0, 0, 0, 0.72);
 
   /* type */
   --font-ui: 'Inter Variable', 'Vazirmatn Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -88,12 +96,12 @@
 
   /* layout */
   --panel-h: 46px;
-  --titlebar-h: 38px;
+  --titlebar-h: 40px;
   --panel-alpha: 1;
   --window-alpha: 1;
   --ui-scale: 1;
   --brightness: 1;
-  --glass-blur: 22px;
+  --glass-blur: 26px;
 
   /* spacing */
   --space-1: 4px;
@@ -110,82 +118,82 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --bg-0: #e7ecf2;
-  --bg-1: #f2f5f9;
+  --bg-0: #e6ebf2;
+  --bg-1: #f1f4f9;
   --bg-2: #ffffff;
 
   --surface-1: #ffffff;
-  --surface-2: #f5f8fb;
-  --surface-3: #eaeff5;
-  --surface-inset: #eef2f7;
+  --surface-2: #f4f7fb;
+  --surface-3: #e9eef6;
+  --surface-inset: #edf1f7;
   --surface-solid: #ffffff;
   --window-bg: #ffffff;
-  --window-header: linear-gradient(180deg, #ffffff, #f2f5f9);
+  --window-header: linear-gradient(180deg, #ffffff, #f1f5fa);
   --menu-bg: #ffffff;
-  --popover-bg: rgba(255, 255, 255, 0.97);
-  --panel-bg: rgba(250, 252, 255, 0.86);
-  --panel-highlight: rgba(255, 255, 255, 0.9);
+  --popover-bg: rgba(255, 255, 255, 0.96);
+  --panel-bg: rgba(252, 253, 255, 0.78);
+  --panel-highlight: rgba(255, 255, 255, 0.95);
   --input-bg: #ffffff;
-  --input-border: #ccd6e2;
-  --code-bg: #f1f5f9;
+  --input-border: #cbd6e3;
+  --code-bg: #f0f4f9;
 
-  --text-1: #0f1922;
-  --text-2: #43566b;
-  --text-3: #6b7f95;
+  --text-1: #0d1721;
+  --text-2: #41556a;
+  --text-3: #687d93;
 
-  --border-1: rgba(15, 25, 34, 0.09);
-  --border-2: rgba(15, 25, 34, 0.16);
-  --border-strong: rgba(15, 25, 34, 0.28);
+  --border-1: rgba(13, 23, 33, 0.085);
+  --border-2: rgba(13, 23, 33, 0.15);
+  --border-strong: rgba(13, 23, 33, 0.27);
 
-  --hover: rgba(15, 25, 34, 0.055);
-  --active: rgba(15, 25, 34, 0.09);
-  --scrim: rgba(30, 42, 56, 0.32);
+  --hover: rgba(13, 23, 33, 0.052);
+  --active: rgba(13, 23, 33, 0.088);
+  --scrim: rgba(28, 40, 54, 0.3);
 
   --accent-contrast: #ffffff;
   --text-on-accent: #ffffff;
 
-  --shadow-xs: 0 1px 2px rgba(23, 38, 55, 0.1);
-  --shadow-sm: 0 2px 8px rgba(23, 38, 55, 0.1);
-  --shadow-md: 0 12px 30px -14px rgba(23, 38, 55, 0.35);
-  --shadow-lg: 0 28px 60px -26px rgba(23, 38, 55, 0.4);
-  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 24px 60px -26px rgba(19, 34, 50, 0.42),
-    0 6px 20px -12px rgba(19, 34, 50, 0.22);
+  --shadow-xs: 0 1px 2px rgba(21, 35, 51, 0.1);
+  --shadow-sm: 0 3px 10px rgba(21, 35, 51, 0.1);
+  --shadow-md: 0 14px 30px -14px rgba(21, 35, 51, 0.32);
+  --shadow-lg: 0 30px 64px -26px rgba(21, 35, 51, 0.38), 0 4px 12px -6px rgba(21, 35, 51, 0.16);
+  --shadow-window: 0 1px 0 rgba(255, 255, 255, 0.92) inset, 0 26px 64px -28px rgba(17, 31, 46, 0.4),
+    0 8px 22px -14px rgba(17, 31, 46, 0.22);
 }
 
 /* ---------------- accent palettes ---------------- */
 
 [data-accent='mint'] {
-  --accent: #3ddc97;
-  --accent-rgb: 61, 220, 151;
-  --accent-2: #34c3ff;
-  --accent-contrast: #05140d;
+  --accent: #3ce3a4;
+  --accent-rgb: 60, 227, 164;
+  --accent-2: #62c9ff;
+  --accent-contrast: #04140d;
 }
 
 [data-accent='sky'] {
-  --accent: #4aa8ff;
-  --accent-rgb: 74, 168, 255;
-  --accent-2: #6ee7ff;
+  --accent: #4fb0ff;
+  --accent-rgb: 79, 176, 255;
+  --accent-2: #7ee8ff;
   --accent-contrast: #04121e;
 }
 
 [data-accent='violet'] {
-  --accent: #a58bff;
-  --accent-rgb: 165, 139, 255;
-  --accent-2: #ff8bd0;
+  --accent: #ab8dff;
+  --accent-rgb: 171, 141, 255;
+  --accent-2: #ff9ad8;
   --accent-contrast: #100522;
 }
 
 [data-accent='amber'] {
-  --accent: #f5b747;
-  --accent-rgb: 245, 183, 71;
-  --accent-2: #ff8a5c;
+  --accent: #f6bb52;
+  --accent-rgb: 246, 187, 82;
+  --accent-2: #ff9a63;
   --accent-contrast: #1c1203;
 }
 
 [data-accent='rose'] {
-  --accent: #ff7a90;
-  --accent-rgb: 255, 122, 144;
-  --accent-2: #ffb07a;
+  --accent: #ff8296;
+  --accent-rgb: 255, 130, 150;
+  --accent-2: #ffb684;
   --accent-contrast: #210810;
 }
 
