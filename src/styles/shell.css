@@ -2228,9 +2228,12 @@ html[dir='rtl'] .login__footer .select {
 
 .osd {
   position: fixed;
-  left: 50%;
+  /* Centred with auto margins, not translateX: framer-motion owns `transform`
+     here and would otherwise overwrite the centring. */
+  left: 0;
+  right: 0;
+  margin-inline: auto;
   bottom: 84px;
-  transform: translateX(-50%);
   z-index: 9300;
   width: 218px;
   padding: 11px 13px 12px;
