@@ -289,13 +289,18 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
                     'panel__button',
                     windows.some((win) => win.appId === appId && !win.minimized) && 'is-open',
                   )}
-                  onClick={() => {
+                  onClick={(event) => {
                     const existing = windows.find((win) => win.appId === appId);
                     if (existing) {
                       if (existing.minimized) restoreWindow(existing.id);
                       else if (activeId === existing.id) useWindows.getState().minimizeWindow(existing.id);
                       else focusWindow(existing.id);
-                    } else openApp(appId);
+                    } else {
+                      openApp(appId);
+                      // Do not leave the keyboard on this button: Enter must reach
+                      // the app that was just launched, not launch it again.
+                      event.currentTarget.blur();
+                    }
                   }}
                   title={t(APP_META[appId].name)}
                 >
@@ -315,13 +320,18 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
                     'panel__button',
                     windows.some((win) => win.appId === appId && !win.minimized) && 'is-open',
                   )}
-                  onClick={() => {
+                  onClick={(event) => {
                     const existing = windows.find((win) => win.appId === appId);
                     if (existing) {
                       if (existing.minimized) restoreWindow(existing.id);
                       else if (activeId === existing.id) useWindows.getState().minimizeWindow(existing.id);
                       else focusWindow(existing.id);
-                    } else openApp(appId);
+                    } else {
+                      openApp(appId);
+                      // Do not leave the keyboard on this button: Enter must reach
+                      // the app that was just launched, not launch it again.
+                      event.currentTarget.blur();
+                    }
                   }}
                   title={t(APP_META[appId].name)}
                 >

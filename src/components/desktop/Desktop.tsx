@@ -418,8 +418,20 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
+    /**
+     * Desktop shortcuts act on the selected icon, so they must never fire while
+     * the user is typing somewhere: a key that reaches this handler from an
+     * editable field or an open dialog belongs to that surface, not to the
+     * desktop. Only keys aimed at the canvas or a focused icon are handled.
+     */
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest('.window, [role="dialog"], .context-menu, .menu, input, textarea, select, [contenteditable="true"]')) {
+      return;
+    }
     if (!selected) return;
     if (event.key === 'Enter') {
+      event.preventDefault();
       const appId = appIcons.find((id) => `app:${id}` === selected);
       if (appId) openApp(appId);
       const file = desktopFiles.find((node) => node.id === selected);
@@ -532,13 +544,21 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
                   type="button"
                   className={cn('desktop-icon', selected === key && 'is-selected')}
                   onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
+                  onClick={(event) => {
                     setSelected(key);
                     // Touch screens have no double-click gesture.
-                    if (coarsePointer) openApp(appId);
+                    if (coarsePointer) {
+                      openApp(appId);
+                      // Hand the keyboard to the window: a mouse click leaves the
+                      // icon focused in real browsers, and the next Enter would
+                      // "press" this icon again instead of reaching the app.
+                      event.currentTarget.blur();
+                    }
                   }}
-                  onDoubleClick={() => {
-                    if (!coarsePointer) openApp(appId);
+                  onDoubleClick={(event) => {
+                    if (coarsePointer) return;
+                    openApp(appId);
+                    event.currentTarget.blur();
                   }}
                   onContextMenu={(event) => appMenu(event, appId)}
                   title={t(meta.description)}

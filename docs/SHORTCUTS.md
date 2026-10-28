@@ -87,6 +87,7 @@
 | `find [path]` / `tree [path]` | List files below a folder / draw the tree |
 | `uname [-a]` / `date` / `time` / `whoami` | Simulated system identity |
 | `history` | Command history (↑ / ↓ to recall) |
+| *New window* (status bar) | Open a second, independent shell |
 | `neofetch` | Simulated system information |
 | `open <path>` | Open a file in the desktop |
 | `clear` | Clear the screen |

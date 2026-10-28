@@ -5,7 +5,7 @@
 **A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
 [![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
-[![Tests](https://img.shields.io/badge/tests-242%20passing-3ddc97?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/tests-249%20passing-3ddc97?style=for-the-badge)](#testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
@@ -159,7 +159,7 @@ persisted best scores.
 | **Weather** | Live Open-Meteo data: now, 24-hour strip, 7-day list, city search, saved cities, explicit retry states. |
 | **Settings** | Appearance (theme, accent studio, radius, transparency, sounds), Desktop & Panel (session restore, cross-tab sync), Display, Brightness, Wallpapers (dim, blur, drag & drop), Fonts, Keyboard layout, Language, Date & Time, Notifications, Storage (export/import/backup/restore/clear/reset preview), Privacy, Accessibility, About (with local usage counters). |
 | **Documentation** | Reads the repository's own `README.md` and `docs/*.md` from the bundle: document list, per-document section index, full-text search with matches, and one Markdown renderer shared with Code. |
-| **Terminal** | A simulated shell over the virtual FS: 20 commands, `\|` pipelines, `>`/`>>` redirection, `grep`/`head`/`tail`/`wc`/`sort`/`uniq` over pipes, `ls \| grep .ts \| wc -l` — and a polite refusal for `sudo`. |
+| **Terminal** | A simulated shell over the virtual FS: 20 commands, `\|` pipelines, `>`/`>>` redirection, `grep`/`head`/`tail`/`wc`/`sort`/`uniq` over pipes, `ls \| grep .ts \| wc -l` — and a polite refusal for `sudo`. The window is a singleton (a second launch focuses the shell you are typing in) and its prompt keeps the keyboard, so Enter always runs the command; *New window* in the status bar opens a deliberate second shell. |
 | **System apps** | Calculator, Calendar (events, colours, month view), System Monitor (labelled *simulated*), Software Center (install/remove apps, updates the menu), Trash, Welcome. |
 
 ---
@@ -292,7 +292,7 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # 242 Vitest tests (jsdom + Testing Library)
+npm run test       # 249 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
 npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
@@ -420,7 +420,7 @@ Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ```
 tsc -b          clean (strict, project references)
-vitest run      242 tests, 13 files, all passing
+vitest run      249 tests, 13 files, all passing
 vite build      production bundle ~165 kB index + lazy app chunks
 ```
 
