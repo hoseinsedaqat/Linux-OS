@@ -697,10 +697,10 @@ html[dir='rtl'] .desktop__icons {
 
 .panel--left,
 .panel--right {
-  width: calc(var(--panel-h) - 28px);
-  max-width: 64px;
+  width: calc(var(--panel-h) - 2px);
+  max-width: 68px;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 9px 0;
   top: 9px;
   bottom: 9px;
 }
@@ -717,6 +717,14 @@ html[dir='rtl'] .desktop__icons {
   opacity: 0;
   pointer-events: none;
   transform: translateY(12px);
+}
+
+.panel--left.is-hidden {
+  transform: translateX(-12px);
+}
+
+.panel--right.is-hidden {
+  transform: translateX(12px);
 }
 
 .panel__group {
@@ -968,15 +976,27 @@ html[dir='rtl'] .desktop__icons {
   max-height: 100%;
 }
 
+.panel--left .panel__start span:not(.panel__avatar),
+.panel--right .panel__start span:not(.panel__avatar) {
+  display: none;
+}
+
+.panel--left .panel__start,
+.panel--right .panel__start {
+  padding-inline-end: 0;
+  justify-content: center;
+  width: 100%;
+}
+
 .panel--left .panel__button,
 .panel--right .panel__button {
-  width: calc(var(--panel-h) - 14px);
+  width: calc(var(--panel-h) - 18px);
   padding: 0;
   justify-content: center;
 }
 
-.panel--left .panel__button span,
-.panel--right .panel__button span {
+.panel--left .panel__button span:not(.panel__avatar):not(.panel__badge),
+.panel--right .panel__button span:not(.panel__avatar):not(.panel__badge) {
   display: none;
 }
 
@@ -2449,5 +2469,26 @@ html[dir='rtl'] .login__footer .select {
   from {
     opacity: 0;
     transform: translateY(14px);
+  }
+}
+
+/* firmware-style POST lines, a nod to real BIOS screens — clearly simulated */
+.boot__post {
+  position: absolute;
+  top: 18px;
+  inset-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  color: rgba(180, 205, 220, 0.42);
+  pointer-events: none;
+}
+
+@media (max-width: 720px) {
+  .boot__post {
+    display: none;
   }
 }

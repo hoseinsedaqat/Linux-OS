@@ -7,3 +7,6 @@ dist-ssr
 coverage
 *.tsbuildinfo
 .arena
+
+# research scratch (image search results, never shipped)
+image-search/

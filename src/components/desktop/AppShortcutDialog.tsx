@@ -6,7 +6,7 @@ import { useLauncher } from '@/core/apps/launcherStore';
 import { AppIcon } from '@/components/common/AppIcon';
 import { Modal } from '@/components/common/Modal';
 import { useT } from '@/core/localization/i18n';
-import { notify, notifyError } from '@/core/notifications/notificationsStore';
+import { notify } from '@/core/notifications/notificationsStore';
 import { cn } from '@/utils';
 
 interface AppShortcutDialogProps {
@@ -97,7 +97,7 @@ export function AppShortcutDialog({ open, onClose }: AppShortcutDialogProps) {
             className="btn btn--sm"
             onClick={() => {
               useLauncher.getState().resetDesktop();
-              notifyError(t('Desktop icons restored'), t('Default set'));
+              notify(t('Desktop icons restored'), { body: t('Default set'), kind: 'success' });
             }}
           >
             {t('Restore default icons')}

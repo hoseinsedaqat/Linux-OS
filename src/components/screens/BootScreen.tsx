@@ -79,6 +79,11 @@ export function BootScreen({ onComplete, quick = false }: BootScreenProps) {
 
   return (
     <div className="boot" onPointerDown={finish} role="status" aria-live="polite">
+      <div className="boot__post" aria-hidden>
+        <span>NOVA Firmware 1.0 — Web Virtual Machine</span>
+        <span>4096 MB RAM · virtual display · simulated hardware</span>
+      </div>
+
       <motion.div
         className="boot__logo"
         initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.86 }}
