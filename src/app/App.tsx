@@ -14,6 +14,9 @@ import { Desktop } from '@/components/desktop/Desktop';
 import { NovaLogo } from '@/components/common/NovaLogo';
 import { Toasts } from '@/components/common/Toasts';
 import { useT } from '@/core/localization/i18n';
+import { APP_META } from '@/core/apps/appMeta';
+import type { AppId } from '@/types';
+import { playSound } from '@/core/audio/sfx';
 
 type Phase = 'boot' | 'login' | 'desktop' | 'locked' | 'shutdown' | 'restarting' | 'off';
 
@@ -42,6 +45,20 @@ export default function App() {
     applyTheme(settings);
   }, [settings]);
 
+  /* PWA shortcuts open ./?app=<id>; consume it once the desktop is visible. */
+  useEffect(() => {
+    if (phase !== 'desktop') return;
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('app');
+    if (!requested) return;
+    if (requested in APP_META) {
+      useWindows.getState().openApp(requested as AppId);
+    }
+    params.delete('app');
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+  }, [phase]);
+
   /* Mount the virtual file system once. */
   useEffect(() => {
     void useFiles.getState().init();
@@ -57,9 +74,35 @@ export default function App() {
     const onKey = (event: KeyboardEvent) => {
       const inDesktop = phase === 'desktop';
       const mod = event.ctrlKey || event.metaKey;
+      const target = event.target as HTMLElement | null;
+      const typing = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
       if (mod && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        if (inDesktop) useShell.getState().toggleOverlay('appmenu');
+        if (inDesktop) useShell.getState().togglePalette();
+        return;
+      }
+      if (event.ctrlKey && event.altKey && event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (inDesktop) useShell.getState().openOverlay('overview');
+        return;
+      }
+      if (event.ctrlKey && event.altKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault();
+        if (inDesktop) useWindows.getState().cycleWorkspace(event.key === 'ArrowLeft' ? -1 : 1);
+        return;
+      }
+      if (event.metaKey && !typing && inDesktop && /^Arrow(Left|Right|Up|Down)$/.test(event.key)) {
+        event.preventDefault();
+        const { activeId, snapWindow, toggleMaximize, minimizeWindow, unsnap, windows } = useWindows.getState();
+        const active = windows.find((win) => win.id === activeId);
+        if (!active) return;
+        if (event.key === 'ArrowLeft') snapWindow(active.id, 'left');
+        else if (event.key === 'ArrowRight') snapWindow(active.id, 'right');
+        else if (event.key === 'ArrowUp') toggleMaximize(active.id);
+        else {
+          if (active.snapped) unsnap(active.id);
+          else minimizeWindow(active.id);
+        }
         return;
       }
       if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 't') {
@@ -106,6 +149,7 @@ export default function App() {
     } catch {
       /* ignore */
     }
+    playSound('boot');
     setPhase('desktop');
   };
 
@@ -115,6 +159,7 @@ export default function App() {
     } catch {
       /* ignore */
     }
+    playSound('lock');
     useShell.getState().closeOverlays();
     setPhase('locked');
   };

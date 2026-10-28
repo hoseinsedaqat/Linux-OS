@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import type { AppWindowProps } from '@/core/apps/types';
 import type { Language, PanelPosition, SettingsState } from '@/types';
-import { useSettings } from '@/core/themes/settingsStore';
+import { accentHex, useSettings } from '@/core/themes/settingsStore';
 import { WALLPAPERS, wallpaperClass } from '@/core/themes/applyTheme';
 import { useT } from '@/core/localization/i18n';
 import { useWindows } from '@/core/window-manager/windowsStore';
@@ -38,6 +38,8 @@ import { SectionHeader, Segmented, SliderRow, Toggle } from '@/components/common
 import { ConfirmDialog } from '@/components/common/Modal';
 import { downloadText, formatBytes, cn, fileSize } from '@/utils';
 import { NovaLogo } from '@/components/common/NovaLogo';
+import { previewSound } from '@/core/audio/sfx';
+import { useShell } from '@/core/apps/shellStore';
 
 type SectionId =
   | 'appearance'
@@ -250,6 +252,44 @@ export function SettingsApp({ win }: AppWindowProps) {
                   <div className="settings-row__desc">{t('Uses minimal transitions across the desktop.')}</div>
                 </div>
                 <Toggle checked={settings.reduceMotion} onChange={(value) => set('reduceMotion', value)} label={t('Reduce motion')} />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Custom accent')}</div>
+                  <div className="settings-row__desc">
+                    {settings.customAccent
+                      ? t('Theme studio colour in use: {color}', { color: settings.customAccent })
+                      : t('Pick any colour to replace the preset accent.')}
+                  </div>
+                </div>
+                <div className="row" style={{ gap: 6 }}>
+                  <input
+                    type="color"
+                    className="settings-color"
+                    aria-label={t('Custom accent')}
+                    value={settings.customAccent ?? accentHex(settings.accent)}
+                    onChange={(event) => set('customAccent', event.target.value)}
+                  />
+                  {settings.customAccent && (
+                    <button className="btn btn--ghost btn--sm" onClick={() => set('customAccent', null)}>
+                      <RotateCcw size={12} /> {t('Preset')}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('System sounds')}</div>
+                  <div className="settings-row__desc">
+                    {t('Short synthesised feedback for opening, closing and notifications.')}
+                  </div>
+                </div>
+                <div className="row" style={{ gap: 6 }}>
+                  <button className="btn btn--ghost btn--sm" onClick={previewSound}>
+                    <Volume2 size={12} /> {t('Test')}
+                  </button>
+                  <Toggle checked={settings.sounds} onChange={(value) => set('sounds', value)} label={t('System sounds')} />
+                </div>
               </div>
             </div>
           </>
@@ -718,11 +758,28 @@ export function SettingsApp({ win }: AppWindowProps) {
               />
               <div className="settings-row">
                 <div>
-                  <div className="settings-row__title">{t('High contrast text')}</div>
-                  <div className="settings-row__desc">{t('Use the light theme for maximum contrast.')}</div>
+                  <div className="settings-row__title">{t('High contrast')}</div>
+                  <div className="settings-row__desc">
+                    {t('Boosts text and border contrast and thickens every outline.')}
+                  </div>
                 </div>
-                <button className="btn btn--sm" onClick={() => set('theme', settings.theme === 'light' ? 'dark' : 'light')}>
-                  {settings.theme === 'light' ? t('Dark Mode') : t('Light Mode')}
+                <Toggle checked={settings.highContrast} onChange={(value) => set('highContrast', value)} label={t('High contrast')} />
+              </div>
+              <SliderRow
+                label={t('Screensaver after')}
+                value={settings.screensaverMinutes}
+                min={0}
+                max={30}
+                onChange={(value) => set('screensaverMinutes', value)}
+                format={(value) => (value === 0 ? t('Off') : t('{n} min', { n: value }))}
+              />
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Keyboard shortcuts')}</div>
+                  <div className="settings-row__desc">{t('Every shell shortcut in one list.')}</div>
+                </div>
+                <button className="btn btn--sm" onClick={() => useShell.getState().openOverlay('shortcuts')}>
+                  <Keyboard size={13} /> {t('Show list')}
                 </button>
               </div>
               <div className="settings-note">

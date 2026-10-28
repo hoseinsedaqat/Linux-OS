@@ -24,6 +24,7 @@ export const DEFAULT_DESKTOP_APPS: AppId[] = [
   'software',
   'monitor',
   'settings',
+  'games',
   'trash',
 ];
 

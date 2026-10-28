@@ -1,8 +1,28 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowUpRight, BookOpen, Globe2, Loader2, Search, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  BookOpen,
+  Globe2,
+  Loader2,
+  MessageCircleQuestion,
+  RefreshCw,
+  Search,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import { useT } from '@/core/localization/i18n';
 import { cn } from '@/utils';
-import { externalSearchLinks, loadArticle, runWebSearch, type Article, type SearchOutcome } from './search';
+import {
+  clearSearchCache,
+  externalSearchLinks,
+  loadArticle,
+  runWebSearch,
+  type Article,
+  type SearchHit,
+  type SearchOutcome,
+  type SearchSource,
+} from './search';
 
 interface SearchPageProps {
   query: string;
@@ -14,6 +34,14 @@ interface SearchPageProps {
 
 const SUGGESTED_QUERIES = ['Linux kernel', 'GitHub Pages', 'WebAssembly', 'Persian calligraphy', 'KDE Plasma'];
 
+const SOURCE_META: Record<SearchSource, { label: string; hint: string; icon: typeof Globe2 }> = {
+  wikipedia: { label: 'Wikipedia', hint: 'encyclopedia', icon: BookOpen },
+  hackernews: { label: 'Hacker News', hint: 'community', icon: Globe2 },
+  stackexchange: { label: 'Stack Overflow', hint: 'Q&A', icon: MessageCircleQuestion },
+  duckduckgo: { label: 'DuckDuckGo', hint: 'answer', icon: Sparkles },
+  dictionary: { label: 'Dictionary', hint: 'definition', icon: BookOpen },
+};
+
 function hostOfUrl(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '');
@@ -22,20 +50,24 @@ function hostOfUrl(url: string): string {
   }
 }
 
+type Filter = SearchSource | 'all';
+
 export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearch }: SearchPageProps) {
   const t = useT();
   const [outcome, setOutcome] = useState<SearchOutcome | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [filter, setFilter] = useState<Filter>('all');
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!query.trim()) {
       setStatus('ready');
-      setOutcome({ query, hits: [], failed: false });
+      setOutcome({ query, hits: [], sources: [], failed: false });
       return;
     }
     const controller = new AbortController();
     setStatus('loading');
-    runWebSearch(query, { lang, signal: controller.signal })
+    runWebSearch(query, { lang, signal: controller.signal, fresh: attempt > 0 })
       .then((result) => {
         if (controller.signal.aborted) return;
         setOutcome(result);
@@ -46,10 +78,55 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
         setStatus('error');
       });
     return () => controller.abort();
-  }, [query, lang]);
+  }, [query, lang, attempt]);
+
+  useEffect(() => setFilter('all'), [query]);
+
+  const retry = useCallback(() => {
+    clearSearchCache();
+    setAttempt((value) => value + 1);
+  }, []);
 
   const links = useMemo(() => externalSearchLinks(query || 'Linux'), [query]);
   const hits = outcome?.hits ?? [];
+  const visibleHits = filter === 'all' ? hits : hits.filter((hit) => hit.source === filter);
+  const okSources = (outcome?.sources ?? []).filter((source) => source.state === 'ok');
+  const failedSources = (outcome?.sources ?? []).filter((source) => source.state === 'error');
+
+  const grouped = useMemo(() => {
+    if (filter !== 'all') return [] as Array<[SearchSource, SearchHit[]]>;
+    const order: SearchSource[] = ['wikipedia', 'stackexchange', 'hackernews', 'duckduckgo', 'dictionary'];
+    const map = new Map<SearchSource, SearchHit[]>();
+    for (const hit of hits) {
+      const list = map.get(hit.source) ?? [];
+      list.push(hit);
+      map.set(hit.source, list);
+    }
+    return order.filter((source) => map.has(source)).map((source) => [source, map.get(source)!] as [SearchSource, SearchHit[]]);
+  }, [hits, filter]);
+
+  const renderHit = (hit: SearchHit) => (
+    <article className="bsearch__hit" key={hit.id}>
+      <button className="bsearch__hit-main" onClick={() => onOpenArticle(hit.title)}>
+        <span className="bsearch__favicon" aria-hidden>
+          {hit.title.slice(0, 1).toUpperCase()}
+        </span>
+        <span className="bsearch__hit-text">
+          <span className="bsearch__hit-title">{hit.title}</span>
+          <span className="bsearch__hit-url">
+            {SOURCE_META[hit.source].label} · {hostOfUrl(hit.url)}
+          </span>
+          {hit.snippet && <span className="bsearch__hit-snippet">{hit.snippet}</span>}
+        </span>
+      </button>
+      {hit.thumbnail && (
+        <img className="bsearch__thumb" src={hit.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" />
+      )}
+      <button className="bsearch__hit-open" title={t('Open the real page')} onClick={() => onOpenExternal(hit.url)}>
+        <ArrowUpRight size={14} />
+      </button>
+    </article>
+  );
 
   return (
     <div className="bsearch">
@@ -60,10 +137,47 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
             {t('Nova Search')}
           </span>
           <span className="bsearch__query">{query}</span>
-          {status === 'ready' && outcome && !outcome.failed && hits.length > 0 && (
+          {status === 'ready' && hits.length > 0 && (
             <span className="bsearch__meta">{t('{count} results from the open web', { count: hits.length })}</span>
           )}
+          {status === 'ready' && (
+            <button className="bsearch__link-btn is-quiet bsearch__retry" onClick={retry} title={t('Search again')}>
+              <RefreshCw size={11} />
+              {t('Refresh')}
+            </button>
+          )}
         </div>
+
+        {status !== 'loading' && (outcome?.sources.length ?? 0) > 0 && (
+          <div className="bsearch__sources">
+            <button
+              className={cn('bsearch__source-chip', filter === 'all' && 'is-active')}
+              onClick={() => setFilter('all')}
+            >
+              {t('All sources')}
+              <span className="bsearch__source-count">{hits.length}</span>
+            </button>
+            {outcome!.sources.map((source) => {
+              const meta = SOURCE_META[source.id as SearchSource] ?? { label: source.label, hint: '', icon: Globe2 };
+              return (
+                <button
+                  key={source.id}
+                  className={cn(
+                    'bsearch__source-chip',
+                    source.state === 'error' && 'is-down',
+                    filter === source.id && 'is-active',
+                  )}
+                  onClick={() => setFilter(source.id as Filter)}
+                  title={source.message ?? meta.hint}
+                >
+                  <span className={cn('bsearch__dot', `is-${source.state}`)} />
+                  {meta.label}
+                  {source.state !== 'error' && <span className="bsearch__source-count">{source.count}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {status === 'loading' && (
           <div className="bsearch__results" aria-busy="true">
@@ -90,10 +204,14 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
               <strong>{t('The search service could not be reached')}</strong>
               <p>
                 {t(
-                  'NOVA Search queries public APIs directly from your browser. Check your connection or a content blocker, then try again — or open the query in your real browser:',
+                  'Nova Search asks several public APIs directly from your browser. Check your connection or a content blocker, then try again — or open the query in your real browser:',
                 )}
               </p>
               <div className="bsearch__links">
+                <button className="bsearch__link-btn" onClick={retry}>
+                  <RefreshCw size={12} />
+                  {t('Try again')}
+                </button>
                 {links.map((link) => (
                   <button key={link.url} className="bsearch__link-btn" onClick={() => onOpenExternal(link.url)}>
                     {link.label}
@@ -116,7 +234,7 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
                 <p>{outcome.answer.text}</p>
                 {outcome.answer.url && (
                   <button className="bsearch__link-btn" onClick={() => onOpenExternal(outcome.answer!.url!)}>
-                    {hostOfUrl(outcome.answer.url)}
+                    {SOURCE_META[outcome.answer.source].label}
                     <ArrowUpRight size={12} />
                   </button>
                 )}
@@ -129,52 +247,44 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
               </button>
             )}
 
-            {hits.length > 0 ? (
-              <div className="bsearch__results">
-                {hits.map((hit) => (
-                  <article className="bsearch__hit" key={hit.id}>
-                    <button className="bsearch__hit-main" onClick={() => onOpenArticle(hit.title)}>
-                      <span className="bsearch__favicon" aria-hidden>
-                        {hit.title.slice(0, 1).toUpperCase()}
-                      </span>
-                      <span className="bsearch__hit-text">
-                        <span className="bsearch__hit-title">{hit.title}</span>
-                        <span className="bsearch__hit-url">{hostOfUrl(hit.url)}</span>
-                        {hit.snippet && <span className="bsearch__hit-snippet">{hit.snippet}</span>}
-                      </span>
-                    </button>
-                    {hit.thumbnail && (
-                      <img className="bsearch__thumb" src={hit.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                    )}
-                    <button
-                      className="bsearch__hit-open"
-                      title={t('Open the real page')}
-                      onClick={() => onOpenExternal(hit.url)}
-                    >
-                      <ArrowUpRight size={14} />
-                    </button>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              !outcome?.answer &&
-              !outcome?.failed && (
-                <div className="bsearch__note">
-                  <Globe2 size={16} />
-                  <div>
-                    <strong>{t('Nothing found for “{query}”', { query })}</strong>
-                    <p>{t('Try a different wording, or search the wider web in your real browser:')}</p>
-                    <div className="bsearch__links">
-                      {links.map((link) => (
-                        <button key={link.url} className="bsearch__link-btn" onClick={() => onOpenExternal(link.url)}>
-                          {link.label}
-                          <ArrowUpRight size={12} />
-                        </button>
-                      ))}
+            {visibleHits.length > 0 &&
+              (filter === 'all' ? (
+                grouped.map(([source, list]) => (
+                  <section className="bsearch__group" key={source}>
+                    <div className="bsearch__group-title">
+                      {SOURCE_META[source].label}
+                      <span className="bsearch__group-hint">{t(SOURCE_META[source].hint)}</span>
                     </div>
+                    {list.map(renderHit)}
+                  </section>
+                ))
+              ) : (
+                <div className="bsearch__results">{visibleHits.map(renderHit)}</div>
+              ))}
+
+            {visibleHits.length === 0 && !outcome?.failed && (
+              <div className="bsearch__note">
+                <Globe2 size={16} />
+                <div>
+                  <strong>
+                    {filter === 'all'
+                      ? t('Nothing found for “{query}”', { query })
+                      : t('{source} had no results for “{query}”', {
+                          source: SOURCE_META[filter].label,
+                          query,
+                        })}
+                  </strong>
+                  <p>{t('Try a different wording, another source above, or the wider web in your real browser:')}</p>
+                  <div className="bsearch__links">
+                    {links.map((link) => (
+                      <button key={link.url} className="bsearch__link-btn" onClick={() => onOpenExternal(link.url)}>
+                        {link.label}
+                        <ArrowUpRight size={12} />
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )
+              </div>
             )}
 
             {!query.trim() && (
@@ -194,11 +304,25 @@ export function SearchPage({ query, lang, onOpenArticle, onOpenExternal, onSearc
             <div className="bsearch__foot">
               <span>
                 <BookOpen size={12} />{' '}
-                {t('Results are fetched live from the Wikipedia API; answers from DuckDuckGo. Nothing is tracked or stored.')}
+                {t(
+                  'Results are fetched live from public APIs (Wikipedia, Stack Overflow, Hacker News, DuckDuckGo). Nothing is tracked or stored.',
+                )}
+                {failedSources.length > 0 && okSources.length > 0 && (
+                  <>
+                    {' '}
+                    {t('{list} did not answer this time.', {
+                      list: failedSources.map((source) => source.label).join(', '),
+                    })}
+                  </>
+                )}
               </span>
               <span className="bsearch__foot-links">
                 {links.map((link) => (
-                  <button key={link.url} className={cn('bsearch__link-btn', 'is-quiet')} onClick={() => onOpenExternal(link.url)}>
+                  <button
+                    key={link.url}
+                    className={cn('bsearch__link-btn', 'is-quiet')}
+                    onClick={() => onOpenExternal(link.url)}
+                  >
                     {link.label}
                     <ArrowUpRight size={11} />
                   </button>
@@ -266,7 +390,12 @@ export function ArticlePage({ title, lang, onOpenExternal, onSearch, onBack }: A
               <strong>{t('This article could not be loaded')}</strong>
               <p>{t('The request to the Wikipedia API failed. You can open it in your real browser instead.')}</p>
               <div className="bsearch__links">
-                <button className="bsearch__link-btn" onClick={() => onOpenExternal(`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title)}`)}>
+                <button
+                  className="bsearch__link-btn"
+                  onClick={() =>
+                    onOpenExternal(`https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, '_'))}`)
+                  }
+                >
                   {t('Open on Wikipedia')}
                   <ArrowUpRight size={12} />
                 </button>
@@ -289,10 +418,20 @@ export function ArticlePage({ title, lang, onOpenExternal, onSearch, onBack }: A
           <button className="bsearch__link-btn is-quiet" onClick={onBack}>
             ← {t('Back to results')}
           </button>
-          <button className="bsearch__link-btn is-quiet" onClick={() => onOpenExternal(article.url)}>
-            {t('Read on Wikipedia')}
-            <ArrowUpRight size={11} />
-          </button>
+          <div className="row" style={{ gap: 4 }}>
+            <button className="bsearch__link-btn is-quiet" onClick={() => onOpenExternal(article.url)}>
+              {t('Read on Wikipedia')}
+              <ArrowUpRight size={11} />
+            </button>
+            <button
+              className="bsearch__link-btn is-quiet"
+              onClick={() => onSearch(title)}
+              title={t('Search again')}
+              aria-label={t('Search again')}
+            >
+              <X size={11} />
+            </button>
+          </div>
         </div>
         <article className="bsearch__article">
           {article.thumbnail && (

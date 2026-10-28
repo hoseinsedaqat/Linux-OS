@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Maximize2, Minus, PanelLeft, PanelRight, X } from 'lucide-react';
+import { Columns2, Maximize2, Minus, PanelLeft, PanelRight, X } from 'lucide-react';
 import type { WindowInstance } from '@/types';
-import { useWindows } from '@/core/window-manager/windowsStore';
+import { useWindows, workspaceOf } from '@/core/window-manager/windowsStore';
 import { useSettings } from '@/core/themes/settingsStore';
 import { clampRect, currentMetrics } from '@/core/window-manager/metrics';
 import { AppIcon } from '@/components/common/AppIcon';
 import { useContextMenu } from '@/components/common/ContextMenu';
 import { useT } from '@/core/localization/i18n';
 import { APP_COMPONENTS } from '@/core/apps/registry';
+import { APP_META } from '@/core/apps/appMeta';
 import { cn } from '@/utils';
 
 type Interaction =
@@ -34,6 +35,9 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
   const minimizeWindow = useWindows((state) => state.minimizeWindow);
   const toggleMaximize = useWindows((state) => state.toggleMaximize);
   const updateRect = useWindows((state) => state.updateRect);
+  const snapWindow = useWindows((state) => state.snapWindow);
+  const moveToWorkspace = useWindows((state) => state.moveToWorkspace);
+  const workspace = useWindows((state) => state.workspace);
   const [interaction, setInteraction] = useState<Interaction | null>(null);
   const [dragging, setDragging] = useState(false);
   const menu = useContextMenu();
@@ -93,15 +97,19 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
         const nearTop = current.y <= area.y + 4;
         const nearLeft = current.x <= area.x + 4;
         const nearRight = current.x + current.width >= area.x + area.width - 4;
-        if (nearTop && !current.maximized) {
+        const nearBottom = current.y + current.height >= area.y + area.height - 4;
+        if (!current.maximized && nearTop && nearLeft) {
+          snapWindow(win.id, 'top-left');
+        } else if (!current.maximized && nearTop && nearRight) {
+          snapWindow(win.id, 'top-right');
+        } else if (!current.maximized && nearBottom && nearLeft) {
+          snapWindow(win.id, 'bottom-left');
+        } else if (!current.maximized && nearBottom && nearRight) {
+          snapWindow(win.id, 'bottom-right');
+        } else if (nearTop && !current.maximized) {
           toggleMaximize(win.id);
-        } else if ((nearLeft || nearRight) && !current.maximized) {
-          updateRect(win.id, {
-            x: nearLeft ? area.x : area.x + area.width / 2,
-            y: area.y,
-            width: area.width / 2,
-            height: area.height,
-          });
+        } else if (!current.maximized && (nearLeft || nearRight)) {
+          snapWindow(win.id, nearLeft ? 'left' : 'right');
         } else {
           updateRect(win.id, clampRect({ ...current }, area, MIN_WIDTH, MIN_HEIGHT));
         }
@@ -116,7 +124,7 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [interaction, win.id, dragging, updateRect, toggleMaximize, endInteraction]);
+  }, [interaction, win.id, dragging, updateRect, toggleMaximize, endInteraction, snapWindow]);
 
   const startMove = (event: React.PointerEvent) => {
     if (event.button !== 0) return;
@@ -146,8 +154,6 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
   };
 
   const titleMenu = () => {
-    const metrics = currentMetrics();
-    const area = metrics.workArea;
     menu.open(
       { clientX: win.x + 60, clientY: win.y + 42 },
       [
@@ -166,43 +172,57 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
         { id: 's1', separator: true },
         {
           id: 'left',
-          label: t('Move to left'),
+          label: t('Tile to the left half'),
           icon: PanelLeft,
-          onClick: () =>
-            updateRect(win.id, { x: area.x, y: area.y, width: Math.round(area.width / 2), height: area.height }),
+          onClick: () => snapWindow(win.id, 'left'),
         },
         {
           id: 'right',
-          label: t('Move to right'),
+          label: t('Tile to the right half'),
           icon: PanelRight,
-          onClick: () =>
-            updateRect(win.id, {
-              x: Math.round(area.x + area.width / 2),
-              y: area.y,
-              width: Math.round(area.width / 2),
-              height: area.height,
-            }),
+          onClick: () => snapWindow(win.id, 'right'),
+        },
+        {
+          id: 'quarter',
+          label: t('Tile to a quarter'),
+          icon: Columns2,
+          onClick: () => snapWindow(win.id, 'top-left'),
         },
         { id: 's2', separator: true },
+        ...[1, 2, 3, 4]
+          .filter((index) => index !== workspace)
+          .map((index) => ({
+            id: `ws-${index}`,
+            label: t('Move to workspace {n}', { n: index }),
+            onClick: () => moveToWorkspace(win.id, index),
+          })),
+        { id: 's3', separator: true },
         { id: 'close', label: t('Close'), icon: X, danger: true, onClick: () => closeWindow(win.id) },
       ],
     );
   };
 
+  const onThisWorkspace = workspaceOf(win) === workspace;
   const style = {
     left: win.x,
     top: win.y,
     width: win.width,
     height: win.height,
     zIndex: win.zIndex,
-    display: win.minimized ? 'none' : undefined,
+    display: win.minimized || !onThisWorkspace ? 'none' : undefined,
   } as const;
 
   return (
     <>
       <motion.div
         ref={frameRef}
-        className={cn('window', isActive && 'is-active', win.maximized && 'is-maximized', !isActive && 'is-inactive')}
+        className={cn(
+          'window',
+          isActive && 'is-active',
+          win.maximized && 'is-maximized',
+          win.snapped && 'is-snapped',
+          !isActive && 'is-inactive',
+        )}
         style={style}
         initial={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -253,7 +273,16 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
           </div>
         </header>
         <div className="window__body">
-          <AppComponent win={win} />
+          <Suspense
+            fallback={
+              <div className="window__loading" role="status" aria-live="polite">
+                <span className="window__loading-spinner" aria-hidden />
+                {t('Loading {app}…', { app: t(APP_META[win.appId].name) })}
+              </div>
+            }
+          >
+            <AppComponent win={win} />
+          </Suspense>
         </div>
         {!win.maximized && (
           <>

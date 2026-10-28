@@ -15,7 +15,7 @@ import {
 import { APP_META } from '@/core/apps/appMeta';
 import { useLauncher } from '@/core/apps/launcherStore';
 import { useSettings } from '@/core/themes/settingsStore';
-import { useWindows } from '@/core/window-manager/windowsStore';
+import { WORKSPACE_COUNT, useWindows, workspaceOf } from '@/core/window-manager/windowsStore';
 import { useNotifications } from '@/core/notifications/notificationsStore';
 import { useShell } from '@/core/apps/shellStore';
 import { useClock } from '@/hooks';
@@ -79,7 +79,9 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
     [favorites, installed],
   );
 
-  const tasks = windows.filter((win) => !win.minimized || win.id === activeId);
+  const workspace = useWindows((state) => state.workspace);
+  const switchWorkspace = useWindows((state) => state.switchWorkspace);
+  const tasks = windows.filter((win) => workspaceOf(win) === workspace && (!win.minimized || win.id === activeId));
 
   const side = metrics.isMobile ? 'bottom' : panelPosition;
   const style: React.CSSProperties =
@@ -135,6 +137,24 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
     </div>
   );
 
+  const workspaceSwitcher = (
+    <div className="panel__workspaces" role="group" aria-label={t('Workspaces')}>
+      {Array.from({ length: WORKSPACE_COUNT }, (_, index) => index + 1).map((index) => {
+        const busy = windows.some((win) => workspaceOf(win) === index);
+        return (
+          <button
+            key={index}
+            className={cn('panel__workspace', index === workspace && 'is-active', busy && 'is-busy')}
+            onClick={() => switchWorkspace(index)}
+            title={`${t('Workspace')} ${index}`}
+            aria-label={`${t('Workspace')} ${index}`}
+            aria-pressed={index === workspace}
+          />
+        );
+      })}
+    </div>
+  );
+
   const tray = (
     <>
       <button className="panel__tray-btn" title={t('Network')} onClick={() => toggleOverlay('quick')}>
@@ -174,6 +194,7 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
         </span>
       </button>
       <span className="panel__sep" />
+      {side !== 'left' && side !== 'right' && workspaceSwitcher}
       <button
         className={cn('panel__tray-btn', overlay === 'quick' && 'is-active')}
         title={t('Quick Settings')}
@@ -317,6 +338,7 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
 
         {side === 'left' || side === 'right' ? (
           <div className="panel__group" style={{ marginTop: 'auto' }}>
+            <div className="panel__workspaces panel__workspaces--vertical">{workspaceSwitcher}</div>
             <button className="panel__button" onClick={() => toggleOverlay('notifications')} style={{ position: 'relative' }}>
               <Bell size={16} />
               {unread > 0 && <span className="panel__badge">{unread}</span>}

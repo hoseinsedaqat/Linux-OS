@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { Suspense } from 'react';
 import userEvent from '@testing-library/user-event';
 import App from '@/app/App';
 import { Desktop } from '@/components/desktop/Desktop';
@@ -87,8 +88,14 @@ describe('every registered app renders', () => {
     it(`renders ${appId}`, async () => {
       const Component = APP_COMPONENTS[appId];
       const win = fakeWindow(appId);
-      const { unmount } = render(<Component win={win} />);
-      await waitFor(() => expect(document.body.textContent?.length ?? 0).toBeGreaterThan(0));
+      // Every app is code-split (React.lazy), so the test must provide Suspense.
+      const { unmount } = render(
+        <Suspense fallback={<span data-testid="lazy-fallback">loading</span>}>
+          <Component win={win} />
+        </Suspense>,
+      );
+      await waitFor(() => expect(screen.queryByTestId('lazy-fallback')).toBeNull());
+      expect(document.body.textContent?.length ?? 0).toBeGreaterThan(0);
       unmount();
     });
   }

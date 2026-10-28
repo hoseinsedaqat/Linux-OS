@@ -129,3 +129,19 @@ Adding an app:
 3. Register the component in `core/apps/registry.ts`.
 4. Add classes to `styles/apps.css`; add Persian strings for visible labels.
 5. Add a render smoke test to `tests/ui.test.tsx` (it iterates the registry automatically).
+
+## 11. Shell layers added in the latest round
+
+| Layer | Module | Notes |
+| --- | --- | --- |
+| Command palette | `components/desktop/CommandPalette.tsx` + `shellStore.paletteOpen` | One command list built from apps, open windows, shell actions and workspaces. |
+| Virtual desktops | `windowsStore.workspace`, `workspaceOf()` | Windows carry a `workspace` field; windows of other desktops stay mounted but hidden so app state survives a switch. |
+| Tiling | `windowsStore.snapWindow()` | Pure rect presets over `currentMetrics().workArea`; the drag handler in `WindowFrame` maps edges/corners to them. |
+| Overview (Exposé) | `components/desktop/Overview.tsx` | Lists windows with real geometry; no fake screenshots. |
+| Screensaver | `components/desktop/Screensaver.tsx` | Idle timer from `settings.screensaverMinutes`; any input dismisses. |
+| Onboarding tour | `components/desktop/OnboardingTour.tsx` | `localStorage['nova.tour.seen']`, also reachable via the `tour` overlay. |
+| Shortcut sheet | `components/desktop/ShortcutsSheet.tsx` | Single source of truth rendered from a data table; opened with `Shift + ?`. |
+| Code splitting | `core/apps/registry.ts` | `React.lazy` per app + `manualChunks` for react/motion/icons/state. |
+| Sounds | `core/audio/sfx.ts` | Web Audio synthesis, gated by `settings.sounds` and the simulated volume. |
+| PWA | `public/sw.js`, `core/pwa/register.ts`, `public/manifest.webmanifest` | Shell precache, network-first navigations, no caching of third-party APIs. |
+| Weather | `apps/weather/weatherLogic.ts` | WMO vocabulary + payload mapping kept pure for unit tests. |

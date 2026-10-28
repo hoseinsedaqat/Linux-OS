@@ -56,7 +56,7 @@ sheets on mobile widths).
 
 The desktop is a real workspace, not a wallpaper:
 
-- **An icon for every installed application** (14 out of the box), laid out in columns that grow to
+- **An icon for every installed application** (19 out of the box, including the Games folder), laid out in columns that grow to
   the right and scroll when the screen is small — add or remove any of them and the choice is saved.
 - **Right-click the desktop** for *New folder / text file / document / spreadsheet / presentation /
   note*, *Add app shortcut…*, wallpaper and display settings, "show desktop" and "restore default
@@ -83,17 +83,42 @@ The desktop is a real workspace, not a wallpaper:
 ### Window manager
 - Title bar with app icon + name, minimise / maximise / close, drag to move, eight-way resize.
 - Click-to-focus with correct z-ordering and an active/inactive visual state.
-- Double-click the title bar to maximise; drag to the top edge for a snap preview.
-- Title-bar context menu (restore, snap left/right, close) and a desktop context menu.
+- **Edge and corner tiling**: drag a window to the top edge to maximise, to the left/right edge for a
+  half, or into a corner for a quarter. `Super + ←/→/↑/↓` does the same from the keyboard.
+- **Virtual desktops**: four workspaces, switched from the dots in the panel, `Ctrl+Alt+←/→`, the
+  window overview, or `Ctrl+K → “Go to workspace 3”`. Windows keep their state while you switch.
+- **Window overview (Exposé)**: `Ctrl+Alt+↑` lists every window with its real geometry and workspace,
+  and can focus, minimise, close or move each one.
+- Title-bar context menu (restore, snap left/right/quarter, move to another workspace, close) and a
+  desktop context menu.
 - Windows are clamped inside the work area, cascade when opened, and re-clamp on resize.
 - Multi-instance where it makes sense (Writer, Calc, Impress, Files, Terminal…), singletons for
   Settings, Welcome and the session shell.
+
+### Command palette (`Ctrl+K`)
+A real launcher: search every installed app, every open window, shell actions (theme, settings,
+terminal, overview, shortcuts, lock) and workspaces. Arrow keys move, `Enter` runs, `Escape`
+closes, and each row performs its action — there are no placeholder entries.
 
 ### Applications menu
 Favorites, All Applications, Recent, Internet, Office, Graphics, Multimedia, System, Utilities and
 Development categories with live counts; fuzzy search across names, descriptions and categories;
 pin/unpin; keyboard navigation (↑/↓/Enter/Esc); empty state; right-click a tile for *Open*,
 *Pin* and *Open in new window*.
+
+### Games
+The **Games** app is a hub for four complete, fully playable games that run with real rules and
+persist their best scores in the browser (`nova-linux.games.v1`):
+
+| Game | What is implemented |
+| --- | --- |
+| **Minesweeper** | 9×9 / 12×16 / 14×20 boards, first click always safe, flood reveal, flags (right-click or long-press), chord-click, per-difficulty best **time**. |
+| **2048** | Complete merge/lock rules, keyboard + swipe, score, best score, top tile, one-step undo. |
+| **Snake** | Seeded food placement, wall and self collision, three speeds, score-driven acceleration, pause (`Space`), `R` restarts, on-screen D-pad for touch. |
+| **Tic-Tac-Toe** | Two players on one screen, or a computer with easy (random), medium (optimal 65 %) and hard (full minimax) levels; running win/draw/loss tally. |
+
+`~/Games` in the virtual file system contains four `.app` launcher files — double-clicking one in
+Files or on the desktop opens that game, so the folder is a real launcher folder and not decoration.
 
 ### Files ("Computer")
 All home folders plus Desktop, Documents, Downloads, Pictures, Music, Videos, Notes, Favorites,
@@ -112,16 +137,33 @@ natively:
 
 | Source | Endpoint | Used for |
 | --- | --- | --- |
-| Wikipedia (per language) | `action=query&generator=search` + `extracts`/`pageimages` | result list with real snippets and thumbnails, "did you mean" suggestions |
-| Wikipedia article API | `action=query&prop=extracts` | a clean reader view with section headings |
-| DuckDuckGo Instant Answer | `api.duckduckgo.com/?format=json` | the instant-answer card above the results |
-| Wikipedia opensearch | `action=opensearch` | live suggestions under the address bar |
+| Wikipedia (per language) | `action=query&generator=search` + `extracts`/`pageimages`, with two REST fallbacks | encyclopaedic results with real snippets and thumbnails |
+| Stack Exchange | `api.stackexchange.com/2.3/search/advanced?site=stackoverflow` | technical / programming questions |
+| Hacker News (Algolia) | `hn.algolia.com/api/v1/search?tags=story` | community discussions for technical queries |
+| DuckDuckGo Instant Answer | `api.duckduckgo.com/?format=json` | the instant-answer card and related topics |
+| Free Dictionary | `api.dictionaryapi.dev/api/v2/entries/en/{word}` | definitions for single-word queries |
 
-No API keys, no proxy, no tracking, nothing persisted server-side. When the network or a content
-blocker stops a request the page says so and offers DuckDuckGo / Google / Bing links. Typed text
-that *is* a URL still navigates; whole websites render in an embedded frame, and sites that refuse
-to be embedded (`X-Frame-Options` / CSP) show an explanatory screen with an "Open in your real
-browser" action instead of a broken frame.
+The five providers run **in parallel**, results are de-duplicated by URL and grouped by source.
+A chip row above the results shows the honest status of every provider (*ok / empty / error* with
+the HTTP status), so one failing API never hides the others — the page only reports a total failure
+when *every* provider errored. Each provider's hits render natively (Wikipedia articles get a clean
+reader view); the page never fabricates a result to fill space. Responses are cached for five
+minutes in memory, with *Retry* to bypass the cache. No API keys, no proxy, no tracking.
+
+Typed text that *is* a URL still navigates; whole websites render in an embedded frame, and sites
+that refuse to be embedded (`X-Frame-Options` / CSP) show an explanatory screen with an "Open in
+your real browser" action instead of a broken frame.
+
+### Music, Photos, Weather
+- **Music** — a working player. Bundled tracks are *synthesised with Web Audio* (no audio files, no
+  licensing questions) and drawn with a live analyser; dropping real audio files into `~/Music`
+  adds them to the playlist, with play/pause, previous/next, seek-free progress, volume and a
+  visualiser. It states plainly that it is a demo player, not a media library.
+- **Photos** — a gallery over `~/Pictures`: thumbnails, keyboard navigation, zoom, rotate, details
+  panel and **set as wallpaper** (writes the real custom wallpaper used by the desktop).
+- **Weather** — live forecasts from **Open-Meteo** (keyless, CORS-enabled): current conditions,
+  hourly strip for the next 24 hours, a 7-day list, city search via the Open-Meteo geocoder and
+  saved cities. Network failures show an explicit retry state instead of stale or invented data.
 
 ### Office suite
 - **Writer** — rich text editing (headings, bold/italic/underline, lists, alignment, colours,
@@ -145,11 +187,29 @@ payments, bank accounts, reports with CSV export, and settings with JSON backup/
 Sample data ships pre-loaded **and is clearly labelled as sample data**, with one-click clearing.
 
 ### Settings
-Appearance (theme, accent, corner radius, transparency), Desktop & Panel (position, size, opacity,
-auto-hide, dock labels), Display (virtual resolution, UI scale, text size, fullscreen), Brightness
-(desktop-layer dimming only), Wallpapers, Fonts, Keyboard layout, Language (English ⇄ فارسی with a
-full RTL flip), Date & Time (24-hour, seconds), Notifications, Storage (export/import/backup/
-restore/clear demo data with confirmations), Privacy, Accessibility (reduced motion) and About.
+Appearance (theme, accent, **theme studio** custom accent colour, corner radius, transparency,
+**system sounds** with a test button), Desktop & Panel (position, size, opacity, auto-hide, dock
+labels), Display (virtual resolution, UI scale, text size, fullscreen), Brightness (desktop-layer
+dimming only), Wallpapers, Fonts, Keyboard layout, Language (English ⇄ فارسی with a full RTL flip),
+Date & Time (24-hour, seconds), Notifications, Storage (export/import/backup/restore/clear demo data
+with confirmations), Privacy, Accessibility (**reduce motion**, **high contrast**, text/UI scale,
+**screensaver delay**, shortcut list) and About.
+
+### Installable PWA, offline shell and code splitting
+- `public/manifest.webmanifest` with 192/512/maskable PNG icons, standalone display, app shortcuts
+  (`?app=files`, `?app=games`) and theme colours. Install it from the browser's install button.
+- `public/sw.js` precaches the shell, serves navigations network-first with an offline fallback and
+  keeps hashed assets stale-while-revalidate. Third-party API responses are **never** cached, so
+  search and weather can never show stale data as if it were live.
+- Every application is a `React.lazy` chunk; the shell bundle is ~160 kB and the vendor libraries
+  are split into long-lived `vendor-*` chunks. Opening an app shows a calm loading placeholder.
+
+### Accessibility
+- A visible global focus ring (`:focus-visible`), a **Skip to the desktop** link, named controls and
+  dialogs everywhere, `aria-pressed` workspace buttons, `aria-live` loading state for lazy apps.
+- **High contrast** mode, reduced motion, text-size and UI-scale sliders, and full RTL support.
+- `tests/a11y.test.tsx` audits the desktop for unnamed controls, unlabelled dialogs and images
+  without `alt` text, and covers the keyboard-only palette path.
 
 ### System apps
 Calculator (keyboard-friendly, history), Calendar (month view, events, colours), Terminal
@@ -220,7 +280,7 @@ src/
   apps/
     files/ browser/ writer/ calc/ impress/ notes/ accounting/
     settings/ terminal/ calculator/ calendar/ software-center/
-    system-monitor/ welcome/
+    system-monitor/ welcome/ games/ music/ photos/ weather/
   core/
     apps/                 App metadata, registry (the app contract), launcher + shell stores
     window-manager/       Window store + responsive metrics
@@ -229,10 +289,12 @@ src/
     themes/               Settings store + theme application
     localization/         i18n (English keys → Persian values), localized dates
     notifications/        Notification store
+    audio/ pwa/           Web Audio feedback sounds + service-worker registration
   hooks/ services/ styles/ types/ utils/
-tests/                    Vitest suites (core logic, apps, shell)
+tests/                    Vitest suites (core logic, apps, shell, games, a11y)
+e2e/                      Playwright smoke suite
 docs/                     Architecture, testing checklist, shortcuts
-public/                   Logo, PWA manifest, robots.txt
+public/                   Logo, PWA manifest + icons, service worker, robots.txt
 ```
 
 **Adding an app** only needs: metadata in `core/apps/appMeta.ts`, a component accepting
@@ -259,10 +321,14 @@ app data) plus a "clear demo data" action that always asks for confirmation.
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl/Cmd + K` | Open the Applications menu |
+| `Ctrl/Cmd + K` | Open the command palette (apps, windows, actions) |
 | `Ctrl + Alt + T` | Open Terminal |
+| `Ctrl + Alt + ↑` | Window overview (Exposé) |
+| `Ctrl + Alt + ←/→` | Switch virtual desktop |
+| `Super + ←/→/↑/↓` | Tile / maximise / restore the active window |
 | `Alt + Tab` | Switch to the next window |
 | `Ctrl + Alt + L` | Lock the session |
+| `Shift + ?` | Keyboard shortcut sheet |
 | `Esc` | Close the open menu / dialog |
 | `Delete`, `F2`, `Enter`, `Ctrl+A/C/V` | Files: delete, rename, open, select-all, copy/paste |
 | `Ctrl + S` | Save in Writer / Calc / Impress |
@@ -273,10 +339,16 @@ app data) plus a "clear demo data" action that always asks for confirmation.
 ## Testing
 
 ```bash
-npm run test
+npm run test        # 166 Vitest tests (jsdom + Testing Library)
+npm run test:e2e    # Playwright smoke suite (needs `npx playwright install chromium`)
 ```
 
-The suite runs in `jsdom` with Testing Library and covers:
+The Playwright suite (`e2e/desktop.spec.ts`, workflow `.github/workflows/e2e.yml`) boots the real
+app in Chromium and drives it with the actual shortcuts: sign-in, the application menu, the command
+palette, launching a game, snapping windows, switching desktops, the overview, and the honest
+per-provider failure state of Nova Search (third-party calls are blocked on purpose).
+
+The unit suite runs in `jsdom` with Testing Library and covers:
 
 - utilities, the formula engine and the spreadsheet engine (including error cases),
 - virtual file system CRUD, trash/restore and unique-name handling,
@@ -291,7 +363,13 @@ The suite runs in `jsdom` with Testing Library and covers:
 - real interactions: Terminal commands (and the `sudo` refusal), Notes autosave, Files folder
   creation through the dialog, Trash restore, Accounting create/validate, Calculator keypad,
   Browser navigation (including the iframe-blocked path), Software Center install/uninstall,
-  Calendar events, Settings language & reduced motion, theme/accent persistence.
+  Calendar events, Settings language & reduced motion, theme/accent persistence,
+- **games logic**: safe first click, mine counting, flags/chording, win & loss, 2048 merge and
+  lock rules, snake movement, self-collision and speed curve, tic-tac-toe minimax (never loses as O),
+  best-score bookkeeping,
+- **weather mapping**: WMO code vocabulary, geocoding and forecast shaping, incomplete payload →
+  `null` instead of invented data, keyless URL construction, hourly slicing,
+- **new shell behaviour**: virtual desktops, window tiling, palette state, high-contrast/theme studio.
 
 `docs/TESTING.md` contains the full 30-point manual behaviour checklist used for the release pass.
 
@@ -316,6 +394,12 @@ NOVA Linux is deliberately honest about what it cannot do:
   browser).
 - **Virtual resolution** is a simulated canvas — it changes layout metrics, not your display.
 - Downloadable files are generated in-memory and handed to the browser; there is no server upload.
+- **Offline mode** is a cached shell: apps load from the service-worker cache, but anything that needs
+  the internet (search, weather, real web pages) shows its normal network-error state while offline.
+- **Music** ships synthesised Web Audio tones, not songs. Files you place in `~/Music` are played by
+  the browser and therefore depend on its codec support; unsupported formats are reported, not faked.
+- **Weather** comes from Open-Meteo and needs a connection; there is no offline forecast cache
+  pretending to be current.
 
 ---
 

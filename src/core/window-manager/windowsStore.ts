@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { AppId, WindowInstance, WindowPayload, WindowRect } from '@/types';
+import type { AppId, SnapMode, WindowInstance, WindowPayload, WindowRect } from '@/types';
 import { APP_META } from '@/core/apps/appMeta';
 import { useLauncher } from '@/core/apps/launcherStore';
 import { currentMetrics } from '@/core/window-manager/metrics';
 import { uid } from '@/utils';
+import { playSound } from '@/core/audio/sfx';
 
 interface OpenOptions {
   title?: string;
@@ -11,8 +12,55 @@ interface OpenOptions {
   forceNew?: boolean;
 }
 
+export const WORKSPACE_COUNT = 4;
+
+const snapRects: Record<SnapMode, (area: WindowRect) => WindowRect> = {
+  left: (area) => ({ x: area.x, y: area.y, width: Math.round(area.width / 2), height: area.height }),
+  right: (area) => ({
+    x: area.x + Math.round(area.width / 2),
+    y: area.y,
+    width: Math.round(area.width / 2),
+    height: area.height,
+  }),
+  'top-left': (area) => ({
+    x: area.x,
+    y: area.y,
+    width: Math.round(area.width / 2),
+    height: Math.round(area.height / 2),
+  }),
+  'top-right': (area) => ({
+    x: area.x + Math.round(area.width / 2),
+    y: area.y,
+    width: Math.round(area.width / 2),
+    height: Math.round(area.height / 2),
+  }),
+  'bottom-left': (area) => ({
+    x: area.x,
+    y: area.y + Math.round(area.height / 2),
+    width: Math.round(area.width / 2),
+    height: Math.round(area.height / 2),
+  }),
+  'bottom-right': (area) => ({
+    x: area.x + Math.round(area.width / 2),
+    y: area.y + Math.round(area.height / 2),
+    width: Math.round(area.width / 2),
+    height: Math.round(area.height / 2),
+  }),
+};
+
+/** The workspace a window belongs to (windows created before workspaces = 1). */
+export function workspaceOf(win: WindowInstance): number {
+  return win.workspace ?? 1;
+}
+
 interface WindowsState {
   windows: WindowInstance[];
+  workspace: number;
+  switchWorkspace: (index: number) => void;
+  cycleWorkspace: (delta: number) => void;
+  moveToWorkspace: (id: string, workspace: number) => void;
+  snapWindow: (id: string, mode: SnapMode) => void;
+  unsnap: (id: string) => void;
   activeId: string | null;
   nextZ: number;
   openApp: (appId: AppId, payload?: WindowPayload, options?: OpenOptions) => string;
@@ -80,13 +128,64 @@ function shouldStartMaximized(metrics: ReturnType<typeof currentMetrics>): boole
 
 export const useWindows = create<WindowsState>((set, get) => ({
   windows: [],
+  workspace: 1,
   activeId: null,
   nextZ: 120,
+
+  switchWorkspace: (index) => {
+    const next = Math.min(Math.max(1, Math.round(index)), WORKSPACE_COUNT);
+    const state = get();
+    const top = state.windows
+      .filter((win) => workspaceOf(win) === next && !win.minimized)
+      .sort((a, b) => b.zIndex - a.zIndex)[0];
+    set({ workspace: next, activeId: top ? top.id : null });
+  },
+
+  cycleWorkspace: (delta) => {
+    const state = get();
+    const next = ((state.workspace - 1 + delta + WORKSPACE_COUNT) % WORKSPACE_COUNT) + 1;
+    get().switchWorkspace(next);
+  },
+
+  moveToWorkspace: (id, workspace) => {
+    const target = Math.min(Math.max(1, Math.round(workspace)), WORKSPACE_COUNT);
+    set((state) => ({
+      windows: state.windows.map((win) =>
+        win.id === id ? { ...win, workspace: target, minimized: target === state.workspace ? win.minimized : true } : win,
+      ),
+      activeId: state.activeId === id && target !== state.workspace ? null : state.activeId,
+    }));
+  },
+
+  snapWindow: (id, mode) => {
+    const { workArea } = currentMetrics();
+    const gap = 6;
+    const rect = snapRects[mode]({
+      x: workArea.x + gap,
+      y: workArea.y + gap,
+      width: workArea.width - gap * 2,
+      height: workArea.height - gap * 2,
+    });
+    set((state) => ({
+      windows: state.windows.map((win) =>
+        win.id === id
+          ? { ...win, ...rect, maximized: false, snapped: mode, restoreRect: win.snapped ? win.restoreRect : { x: win.x, y: win.y, width: win.width, height: win.height } }
+          : win,
+      ),
+    }));
+  },
+
+  unsnap: (id) => {
+    set((state) => ({
+      windows: state.windows.map((win) => (win.id === id ? { ...win, snapped: undefined } : win)),
+    }));
+  },
 
   openApp: (appId, payload, options = {}) => {
     const meta = APP_META[appId];
     const state = get();
     useLauncher.getState().recordUse(appId);
+    playSound('open');
 
     if (meta.singleton && !options.forceNew) {
       const existing = state.windows.find((win) => win.appId === appId);
@@ -135,6 +234,7 @@ export const useWindows = create<WindowsState>((set, get) => ({
       restoreRect: maximize ? rect : undefined,
       payload,
       createdAt: Date.now(),
+      workspace: state.workspace,
     };
 
     // New windows go on top of the stack. The previously active window is
@@ -150,6 +250,7 @@ export const useWindows = create<WindowsState>((set, get) => ({
   },
 
   closeWindow: (id) => {
+    playSound('close');
     const state = get();
     const remaining = state.windows.filter((win) => win.id !== id);
     const active = remaining
@@ -224,7 +325,9 @@ export const useWindows = create<WindowsState>((set, get) => ({
 
   updateRect: (id, rect) =>
     set((state) => ({
-      windows: state.windows.map((win) => (win.id === id ? { ...win, ...rect } : win)),
+      windows: state.windows.map((win) =>
+        win.id === id ? { ...win, ...rect, snapped: rect.width !== undefined || rect.x !== undefined ? undefined : win.snapped } : win,
+      ),
     })),
 
   setTitle: (id, title) =>
@@ -234,18 +337,21 @@ export const useWindows = create<WindowsState>((set, get) => ({
 
   minimizeAll: () => {
     set((state) => ({
-      windows: state.windows.map((win) => ({ ...win, minimized: true })),
+      windows: state.windows.map((win) => (workspaceOf(win) === state.workspace ? { ...win, minimized: true } : win)),
       activeId: null,
     }));
   },
 
   restoreAll: () => {
     const z = get().nextZ + 1;
-    set((state) => ({
-      nextZ: z,
-      windows: state.windows.map((win) => ({ ...win, minimized: false })),
-      activeId: state.windows[state.windows.length - 1]?.id ?? null,
-    }));
+    set((state) => {
+      const mine = state.windows.filter((win) => workspaceOf(win) === state.workspace);
+      return {
+        nextZ: z,
+        windows: state.windows.map((win) => (workspaceOf(win) === state.workspace ? { ...win, minimized: false } : win)),
+        activeId: mine.length > 0 ? mine[mine.length - 1].id : null,
+      };
+    });
   },
 
   closeAll: () => set({ windows: [], activeId: null }),
