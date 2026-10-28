@@ -6,6 +6,16 @@ import { expect, test, type Page } from '@playwright/test';
  * fails the suite.
  */
 async function signIn(page: Page) {
+  // The first-run desktop tour is a full-screen backdrop that appears 900 ms
+  // after login and swallows pointer events. Seeding its "seen" flag keeps this
+  // suite deterministic instead of racing that timer.
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('nova.tour.seen', '1');
+    } catch {
+      /* storage blocked - the tolerant dismissal below still applies */
+    }
+  });
   await page.goto('/');
   const skip = page.getByRole('button', { name: /skip/i });
   await skip.click({ timeout: 25_000 }).catch(() => undefined);
@@ -13,10 +23,12 @@ async function signIn(page: Page) {
   await expect(submit).toBeVisible({ timeout: 25_000 });
   await submit.click();
   await expect(page.locator('.desktop')).toBeVisible({ timeout: 25_000 });
-  // The first-run tour may appear a moment later; dismiss it if it does.
+  // Belt and braces: if a tour is on screen after all, dismiss it before a test
+  // tries to click through it.
   const tour = page.locator('.tour');
   if (await tour.isVisible().catch(() => false)) {
     await tour.getByRole('button', { name: /skip/i }).click();
+    await expect(tour).toHaveCount(0);
   }
 }
 
@@ -45,46 +57,14 @@ test('the command palette launches an app and the window loads its chunk', async
 });
 
 test('the games library opens and minesweeper accepts a click', async ({ page }) => {
-  const diag: Record<string, unknown> = {};
-  page.on('console', (message) => {
-    if (message.type() === 'error') diag.consoleError = message.text().slice(0, 300);
-  });
   await signIn(page);
   await runFromPalette(page, 'games');
   await expect(page.locator('.games__title')).toBeVisible({ timeout: 20_000 });
   await page.locator('.games__card', { hasText: 'Minesweeper' }).locator('button', { hasText: /play/i }).click();
   const board = page.locator('.mines__board');
   await expect(board).toBeVisible({ timeout: 20_000 });
-  const cell = board.locator('.mines__cell').nth(12);
-  diag.windows = await page.locator('.window').evaluateAll((nodes) =>
-    nodes.map((node) => {
-      const title = node.querySelector('.window__titlebar')?.textContent?.trim();
-      const rect = node.getBoundingClientRect();
-      return { title, rect: [rect.x, rect.y, rect.width, rect.height], z: getComputedStyle(node).zIndex };
-    }),
-  );
-  diag.cell = await cell.evaluate((node) => {
-    const rect = node.getBoundingClientRect();
-    const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) as HTMLElement | null;
-    return {
-      rect: [rect.x, rect.y, rect.width, rect.height],
-      stage: (() => {
-        const stage = node.closest('.game__stage');
-        if (!stage) return null;
-        const box = stage.getBoundingClientRect();
-        return [box.x, box.y, box.width, box.height];
-      })(),
-      top: top ? `${top.tagName}.${String(top.className)}`.slice(0, 120) : 'none',
-      viewport: [window.innerWidth, window.innerHeight],
-    };
-  });
-  try {
-    await cell.click({ timeout: 6_000 });
-  } catch (error) {
-    diag.clickError = String(error).split('\n').slice(0, 6).join(' | ').slice(0, 900);
-  }
-  console.log('GAMES-DIAG ' + JSON.stringify(diag));
-  await expect(board.locator('.mines__cell.is-open').first()).toBeVisible({ timeout: 5_000 });
+  await board.locator('.mines__cell').nth(12).click();
+  await expect(board.locator('.mines__cell.is-open').first()).toBeVisible();
 });
 
 test('windows snap, desktops switch and the overview lists them', async ({ page }) => {
