@@ -258,9 +258,6 @@
   backdrop-filter: blur(2px);
 }
 
-.desktop-icon:hover .app-tile {
-  transform: translateY(-1px) scale(1.04);
-}
 
 .desktop-icon:active .app-tile {
   transform: scale(0.96);
@@ -280,27 +277,25 @@
 }
 
 .desktop-icon .app-tile {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 52%),
-    linear-gradient(180deg, var(--tile-color, var(--accent)), color-mix(in srgb, var(--tile-color, var(--accent)) 76%, #06080d));
+  width: 50px;
+  height: 50px;
+  border-radius: 16px;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.34) inset,
-    0 0 0 1px rgba(0, 0, 0, 0.28) inset,
-    0 10px 22px -12px rgba(0, 0, 0, 0.9);
-  transition:
-    transform var(--dur-fast) var(--ease),
-    box-shadow var(--dur-fast) var(--ease);
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.2) inset,
+    0 0 0 1px rgba(3, 6, 10, 0.22) inset,
+    0 6px 14px -8px rgba(0, 0, 0, 0.75),
+    0 12px 26px -14px var(--tile-glow, rgba(0, 0, 0, 0.7));
 }
 
-.desktop-icon .app-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent 46%);
-  pointer-events: none;
+.desktop-icon:hover .app-tile {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.24) inset,
+    0 0 0 1px rgba(3, 6, 10, 0.24) inset,
+    0 10px 20px -8px rgba(0, 0, 0, 0.7),
+    0 18px 34px -12px var(--tile-glow, rgba(0, 0, 0, 0.8));
 }
 
 .desktop-icon__badge {
@@ -1724,6 +1719,21 @@
   border-color: var(--border-1);
 }
 
+.app-tile-btn .app-tile {
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.48) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.18) inset,
+    0 0 0 1px rgba(3, 6, 10, 0.22) inset,
+    0 6px 14px -8px rgba(0, 0, 0, 0.7),
+    0 12px 22px -14px var(--tile-glow, rgba(0, 0, 0, 0.8));
+}
+
+.app-tile-btn:hover .app-tile,
+.app-tile-btn.is-focused .app-tile {
+  transform: translateY(-1px) scale(1.04);
+}
+
 .app-tile-btn__name {
   font-size: 11px;
   font-weight: 550;
@@ -1771,27 +1781,61 @@
 
 /* app tiles */
 
+/* App tiles -----------------------------------------------------------------
+   Every icon is a three-stop gradient (light → base → deep) with a glossy top
+   highlight, a 1px light rim and a soft coloured glow underneath, so the icon
+   set reads as a coordinated family instead of flat coloured squares. Colours
+   come from `tileStyle()` in AppIcon.tsx. */
+
 .app-tile {
+  --tile-radius: 30%;
   display: grid;
   place-items: center;
   width: 34px;
   height: 34px;
   border-radius: 11px;
   background-color: var(--tile-color, var(--accent));
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 52%),
-    linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.16));
+  background-image:
+    radial-gradient(120% 90% at 26% 4%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(
+      155deg,
+      var(--tile-color-light, var(--tile-color, var(--accent))) 0%,
+      var(--tile-color, var(--accent)) 46%,
+      var(--tile-color-deep, var(--tile-color, var(--accent))) 118%
+    );
   color: #fff;
   flex: none;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.28) inset,
-    0 0 0 1px rgba(0, 0, 0, 0.22) inset,
-    0 5px 14px -8px rgba(0, 0, 0, 0.7);
   position: relative;
+  isolation: isolate;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.46) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(3, 6, 10, 0.2) inset,
+    0 4px 10px -6px rgba(0, 0, 0, 0.65),
+    0 8px 18px -12px var(--tile-glow, rgba(0, 0, 0, 0.6));
+  transition:
+    transform var(--dur-fast) var(--ease),
+    box-shadow var(--dur-fast) var(--ease),
+    filter var(--dur-fast) var(--ease);
+}
+
+.app-tile__glyph {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 1px 1px rgba(3, 6, 10, 0.35));
 }
 
 .app-tile > svg {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.app-tile--xs {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
 }
 
 .app-tile--sm {
@@ -1809,22 +1853,32 @@
 .app-tile--lg {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 13px;
 }
 
 .app-tile--xl {
   width: 52px;
   height: 52px;
-  border-radius: 15px;
+  border-radius: 16px;
 }
 
+/* glossy highlight arc + bottom depth */
 .app-tile::after {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 48%);
+  background:
+    radial-gradient(100% 54% at 50% -12%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0 42%, rgba(0, 0, 0, 0.12) 100%);
   pointer-events: none;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-tile {
+    transition: none;
+  }
 }
 
 /* ---------------- boot ---------------- */

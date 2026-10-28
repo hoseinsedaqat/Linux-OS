@@ -8,9 +8,9 @@ import {
   LayoutGrid,
   PenLine,
   Presentation,
-  StickyNote,
   Settings2,
   Sparkles,
+  StickyNote,
   Store,
   Table2,
   TerminalSquare,
@@ -46,6 +46,48 @@ export function iconForApp(appId: AppId): LucideIcon {
   return ICONS[APP_META[appId].icon] ?? Folder;
 }
 
+/* ------------------------------------------------------------------ */
+/* Colour maths — every tile is a small three-stop gradient so icons   */
+/* read as glossy app tiles instead of flat coloured squares.          */
+/* ------------------------------------------------------------------ */
+
+function parseHex(hex: string): [number, number, number] {
+  const raw = hex.replace('#', '').trim();
+  const full = raw.length === 3 ? raw.split('').map((char) => char + char).join('') : raw.padEnd(6, '0').slice(0, 6);
+  const value = Number.parseInt(full, 16);
+  if (Number.isNaN(value)) return [120, 140, 160];
+  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+}
+
+function toHex([r, g, b]: [number, number, number]): string {
+  const part = (channel: number) => Math.max(0, Math.min(255, Math.round(channel))).toString(16).padStart(2, '0');
+  return `#${part(r)}${part(g)}${part(b)}`;
+}
+
+/** Blend `hex` towards `target` by `amount` (0–1). */
+export function mixColor(hex: string, target: string, amount: number): string {
+  const a = parseHex(hex);
+  const b = parseHex(target);
+  const ratio = Math.max(0, Math.min(1, amount));
+  return toHex([a[0] + (b[0] - a[0]) * ratio, a[1] + (b[1] - a[1]) * ratio, a[2] + (b[2] - a[2]) * ratio]);
+}
+
+export function rgbaColor(hex: string, alpha: number): string {
+  const [r, g, b] = parseHex(hex);
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+/** CSS custom properties that drive `.app-tile`. */
+export function tileStyle(color: string): Record<string, string> {
+  return {
+    '--tile-color': color,
+    '--tile-color-light': mixColor(color, '#ffffff', 0.3),
+    '--tile-color-deep': mixColor(color, '#04060b', 0.42),
+    '--tile-glow': rgbaColor(color, 0.5),
+    '--tile-glow-soft': rgbaColor(color, 0.24),
+  };
+}
+
 interface AppIconProps {
   appId: AppId;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -57,23 +99,38 @@ const PX: Record<NonNullable<AppIconProps['size']>, number> = {
   xs: 12,
   sm: 15,
   md: 19,
-  lg: 24,
-  xl: 30,
+  lg: 23,
+  xl: 28,
 };
 
 export function AppIcon({ appId, size = 'md', plain = false, className }: AppIconProps) {
   const Icon = iconForApp(appId);
   const meta = APP_META[appId];
-  const boxClass = size === 'sm' ? 'app-tile app-tile--sm' : size === 'lg' ? 'app-tile app-tile--lg' : size === 'xl' ? 'app-tile app-tile--xl' : 'app-tile';
+  const boxClass =
+    size === 'sm'
+      ? 'app-tile app-tile--sm'
+      : size === 'lg'
+        ? 'app-tile app-tile--lg'
+        : size === 'xl'
+          ? 'app-tile app-tile--xl'
+          : size === 'xs'
+            ? 'app-tile app-tile--xs'
+            : 'app-tile';
+
   if (plain) {
     return <Icon size={PX[size]} className={className} strokeWidth={1.9} style={{ color: meta.color }} />;
   }
+
   return (
     <span
       className={cn(boxClass, className)}
-      style={{ ['--tile-color' as string]: meta.color, width: size === 'xs' ? 20 : undefined, height: size === 'xs' ? 20 : undefined }}
+      data-app={appId}
+      style={tileStyle(meta.color)}
+      aria-hidden
     >
-      <Icon size={PX[size]} strokeWidth={1.9} color="#fff" />
+      <span className="app-tile__glyph">
+        <Icon size={PX[size]} strokeWidth={1.85} color="#fff" />
+      </span>
     </span>
   );
 }

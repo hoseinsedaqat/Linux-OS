@@ -102,11 +102,26 @@ back/forward/up, search, multi-select, drag & drop move, copy/cut/paste, duplica
 Move to Trash, restore, delete permanently, empty trash (with confirmation), details pane,
 inline image preview, and a *New* menu that creates real files of every supported kind.
 
-### Browser
+### Browser + Nova Search
 Chrome-inspired but clearly its own thing: tabs (new/close/switch), back/forward/reload/home,
-address bar with search fallback, bookmarks, history, downloads panel, custom new-tab page with a
-clock and shortcuts. Sites that refuse to be embedded (`X-Frame-Options` / CSP) show an explanatory
-screen with an "Open in your real browser" action instead of a broken frame.
+bookmarks, history, downloads panel, and a custom new-tab page with a clock and shortcuts.
+
+**Search is real.** Typing a phrase in the address bar (or the new-tab search box) opens
+**Nova Search**, which queries public APIs straight from your browser and renders the results
+natively:
+
+| Source | Endpoint | Used for |
+| --- | --- | --- |
+| Wikipedia (per language) | `action=query&generator=search` + `extracts`/`pageimages` | result list with real snippets and thumbnails, "did you mean" suggestions |
+| Wikipedia article API | `action=query&prop=extracts` | a clean reader view with section headings |
+| DuckDuckGo Instant Answer | `api.duckduckgo.com/?format=json` | the instant-answer card above the results |
+| Wikipedia opensearch | `action=opensearch` | live suggestions under the address bar |
+
+No API keys, no proxy, no tracking, nothing persisted server-side. When the network or a content
+blocker stops a request the page says so and offers DuckDuckGo / Google / Bing links. Typed text
+that *is* a URL still navigates; whole websites render in an embedded frame, and sites that refuse
+to be embedded (`X-Frame-Options` / CSP) show an explanatory screen with an "Open in your real
+browser" action instead of a broken frame.
 
 ### Office suite
 - **Writer** — rich text editing (headings, bold/italic/underline, lists, alignment, colours,
@@ -288,9 +303,11 @@ NOVA Linux is deliberately honest about what it cannot do:
 
 - **No real OS, kernel, hardware or network access.** Terminal is a simulator over the virtual FS;
   System Monitor graphs and battery/network readings are synthetic and labelled as such.
-- **No real browsing session.** The Browser can display pages that explicitly allow embedding; many
-  sites block it, in which case you get a clear explanation and a link for your real browser. There
-  is no proxy, no server-side fetch and no cookie jar.
+- **Search is real, page rendering is limited.** Nova Search returns genuine results from public
+  APIs, but arbitrary websites still cannot be rendered inside the shell: the Browser can only
+  display pages that explicitly allow embedding, many sites block it, and you get a clear
+  explanation plus a link for your real browser. There is no proxy, no server-side fetch and no
+  cookie jar.
 - **No DOCX/PDF import/export.** Writer exports TXT and HTML, and printing uses the browser's own
   print dialog. Nothing pretends to produce documents it cannot.
 - **No real authentication.** The login screen is a demo: any password works, nothing is validated

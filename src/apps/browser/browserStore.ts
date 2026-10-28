@@ -1,6 +1,7 @@
 import type { Bookmark, HistoryEntry } from '@/types';
 import { PersistedValue } from '@/core/persistence/kvStore';
 import { uid } from '@/utils';
+import { looksLikeAddress, novaSearchUrl } from './search';
 
 export interface BrowserData {
   bookmarks: Bookmark[];
@@ -85,18 +86,40 @@ export function isProbablyBlocked(url: string): boolean {
   return BLOCKED_HOSTS.some((blocked) => host === blocked || host.endsWith(`.${blocked}`));
 }
 
-export function normalizeUrl(input: string): string {
+/**
+ * Turn whatever was typed in the address bar into something the shell can open.
+ * Real URLs stay URLs; anything else becomes a live Nova Search query — which is
+ * answered with real search results (see `search.ts`) instead of a dead page.
+ */
+export function normalizeUrl(input: string, lang = 'en'): string {
   const value = input.trim();
   if (!value) return '';
   if (value === 'nova://newtab' || value === 'about:newtab') return 'nova://newtab';
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) return value;
-  if (/^localhost(:\d+)?(\/|$)/i.test(value)) return `http://${value}`;
-  if (value.includes(' ') || !/\./.test(value)) {
-    return `https://duckduckgo.com/?q=${encodeURIComponent(value)}`;
+  if (value.startsWith('nova://')) return value;
+  if (looksLikeAddress(value)) {
+    if (/^localhost(:\d+)?(\/|$)/i.test(value)) return `http://${value}`;
+    if (/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) return value;
+    return `https://${value}`;
   }
-  return `https://${value}`;
+  return novaSearchUrl(value, lang);
 }
 
 export function displayUrl(url: string): string {
-  return url === 'nova://newtab' ? '' : url.replace(/^https?:\/\//, '');
+  if (url === 'nova://newtab') return '';
+  const search = /^nova:\/\/search\?q=([^&]*)/.exec(url);
+  if (search) {
+    try {
+      return `search: ${decodeURIComponent(search[1])}`;
+    } catch {
+      return 'search';
+    }
+  }
+  if (url.startsWith('nova://article/')) {
+    try {
+      return `wikipedia: ${decodeURIComponent(url.slice('nova://article/'.length).split('?')[0])}`;
+    } catch {
+      return 'wikipedia';
+    }
+  }
+  return url.replace(/^https?:\/\//, '');
 }

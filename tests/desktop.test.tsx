@@ -220,3 +220,24 @@ describe('shell layout contracts (regression guards)', () => {
     expect(keys).toContain('grid-template-columns: repeat(4, 1fr)');
   });
 });
+
+describe('app icon system', () => {
+  const shell = readFileSync('src/styles/shell.css', 'utf8');
+
+  it('builds tiles from a light/base/deep gradient with a coloured glow', () => {
+    expect(shell).toContain('--tile-color-light');
+    expect(shell).toContain('--tile-color-deep');
+    expect(shell).toContain('var(--tile-glow');
+    expect(shell).toMatch(/\.app-tile\s*\{[^}]*isolation:\s*isolate/);
+  });
+
+  it('exposes colour helpers used by the tiles', async () => {
+    const { mixColor, rgbaColor, tileStyle } = await import('@/components/common/AppIcon');
+    expect(mixColor('#000000', '#ffffff', 0.5)).toBe('#808080');
+    expect(mixColor('#ff0000', '#ffffff', 0)).toBe('#ff0000');
+    expect(rgbaColor('#102030', 0.5)).toBe('rgba(16, 32, 48, 0.5)');
+    const style = tileStyle('#3ddc97');
+    expect(style['--tile-color']).toBe('#3ddc97');
+    expect(style['--tile-glow']).toContain('rgba(61, 220, 151');
+  });
+});

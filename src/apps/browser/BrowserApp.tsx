@@ -34,6 +34,15 @@ import {
   normalizeUrl,
   removeBookmark,
 } from './browserStore';
+import { ArticlePage, SearchPage } from './SearchPage';
+import {
+  fetchSuggestions,
+  looksLikeAddress,
+  normalizeWikiLang,
+  novaArticleUrl,
+  novaSearchUrl,
+  parseNovaUrl,
+} from './search';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { FOLDER_IDS, childrenOf } from '@/core/virtual-filesystem/fsUtils';
 import { openNode } from '@/services/fileActions';
@@ -43,12 +52,12 @@ import { cn, formatDate, uid } from '@/utils';
 import { formatLocalizedDate } from '@/core/localization/i18n';
 
 const SHORTCUTS = [
-  { label: 'Wikipedia', url: 'https://www.wikipedia.org', color: '#6b7c93', letter: 'W' },
-  { label: 'OpenStreetMap', url: 'https://www.openstreetmap.org', color: '#5fa855', letter: 'O' },
-  { label: 'Internet Archive', url: 'https://archive.org', color: '#7b6cb0', letter: 'A' },
-  { label: 'MDN', url: 'https://developer.mozilla.org', color: '#3f6fb5', letter: 'M' },
-  { label: 'Example', url: 'https://example.com', color: '#b2853f', letter: 'E' },
-  { label: 'DuckDuckGo', url: 'https://duckduckgo.com', color: '#de5833', letter: 'D' },
+  { label: 'Nova Search', query: 'Web desktop', color: '#3ddc97', letter: 'N' },
+  { label: 'Linux', query: 'Linux kernel', color: '#f0b849', letter: 'L' },
+  { label: 'TypeScript', query: 'TypeScript', color: '#4f8ff0', letter: 'T' },
+  { label: 'Space', query: 'Solar System', color: '#a586ff', letter: 'S' },
+  { label: 'Tea', query: 'Green tea', color: '#5fa855', letter: 'G' },
+  { label: 'Persian', query: 'Persian language', color: '#e2725b', letter: 'P' },
 ];
 
 function newTab(): BrowserTab {
@@ -61,6 +70,7 @@ export function BrowserApp({ win }: AppWindowProps) {
   const [data] = usePersistedValue(browserStore);
   const nodes = useFiles((state) => state.nodes);
   const setTitle = useWindows((state) => state.setTitle);
+  const lang = normalizeWikiLang(language);
   const [tabs, setTabs] = useState<BrowserTab[]>(() => [newTab()]);
   const [activeTabId, setActiveTabId] = useState(() => tabs[0].id);
   const [address, setAddress] = useState('');
@@ -70,24 +80,62 @@ export function BrowserApp({ win }: AppWindowProps) {
   const addressRef = useRef<HTMLInputElement | null>(null);
   const newTabSearchRef = useRef<HTMLInputElement | null>(null);
   const clock = useClock(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [addressFocused, setAddressFocused] = useState(false);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const currentUrl = activeTab?.history[activeTab.historyIndex] ?? 'nova://newtab';
-  const isNewTab = currentUrl === 'nova://newtab';
-  const blocked = !isNewTab && isProbablyBlocked(currentUrl);
+  const novaPage = parseNovaUrl(currentUrl);
+  const isNewTab = novaPage?.kind === 'newtab';
+  const isSearch = novaPage?.kind === 'search';
+  const isArticle = novaPage?.kind === 'article';
+  const blocked = novaPage === null && isProbablyBlocked(currentUrl);
+
+  /** What the address bar shows for a given page. */
+  const addressFor = (url: string): string => {
+    const page = parseNovaUrl(url);
+    if (!page || page.kind === 'newtab') return '';
+    if (page.kind === 'search') return page.query;
+    return page.title;
+  };
 
   useEffect(() => {
-    setAddress(isNewTab ? '' : currentUrl);
-    setTitle(win.id, `${t('Browser')} — ${isNewTab ? t('New Tab') : hostOf(currentUrl) || currentUrl}`);
+    setAddress(addressFor(currentUrl));
+    if (novaPage?.kind === 'search') {
+      setTitle(win.id, `${novaPage.query || t('Search')} — ${t('Nova Search')}`);
+    } else if (novaPage?.kind === 'article') {
+      setTitle(win.id, `${novaPage.title} — ${t('Browser')}`);
+    } else {
+      setTitle(win.id, `${t('Browser')} — ${isNewTab ? t('New Tab') : hostOf(currentUrl) || currentUrl}`);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUrl, activeTabId]);
 
   useEffect(() => {
     if (win.payload?.query) {
-      navigateTo(normalizeUrl(win.payload.query));
+      navigateTo(normalizeUrl(win.payload.query, lang));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [win.payload?.query]);
+
+  /* Live search suggestions from Wikipedia's opensearch API. */
+  useEffect(() => {
+    const value = address.trim();
+    if (!addressFocused || value.length < 2 || looksLikeAddress(value)) {
+      setSuggestions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetchSuggestions(value, lang, controller.signal).then((items) => {
+        if (!controller.signal.aborted) setSuggestions(items);
+      });
+    }, 240);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [address, addressFocused, lang]);
 
   const updateTab = (id: string, updater: (tab: BrowserTab) => BrowserTab) => {
     setTabs((current) => current.map((tab) => (tab.id === id ? updater(tab) : tab)));
@@ -95,24 +143,41 @@ export function BrowserApp({ win }: AppWindowProps) {
 
   function navigateTo(url: string) {
     if (!url) return;
-    const target = url === 'nova://newtab' ? url : url;
+    const target = url;
+    const page = parseNovaUrl(target);
+    const tabTitle =
+      page?.kind === 'search'
+        ? page.query || 'Search'
+        : page?.kind === 'article'
+          ? page.title
+          : target === 'nova://newtab'
+            ? 'New Tab'
+            : hostOf(target) || target;
     updateTab(activeTabId, (tab) => {
       const history = [...tab.history.slice(0, tab.historyIndex + 1), target];
-      return {
-        ...tab,
-        history,
-        historyIndex: history.length - 1,
-        title: target === 'nova://newtab' ? 'New Tab' : hostOf(target) || target,
-      };
+      return { ...tab, history, historyIndex: history.length - 1, title: tabTitle };
     });
-    if (target !== 'nova://newtab') addHistory(target, hostOf(target) || target);
+    if (target !== 'nova://newtab') {
+      const label =
+        page?.kind === 'search'
+          ? `${page.query || 'Search'} — Nova Search`
+          : page?.kind === 'article'
+            ? page.title
+            : hostOf(target) || target;
+      addHistory(target, label);
+    }
     setPanel('none');
   }
 
+  const search = (value: string) => navigateTo(novaSearchUrl(value, lang));
+  const openArticle = (title: string) => navigateTo(novaArticleUrl(title, lang));
+
   const submitAddress = (event: React.FormEvent) => {
     event.preventDefault();
-    const target = normalizeUrl(address);
+    const target = normalizeUrl(address, lang);
     if (!target) return;
+    setSuggestions([]);
+    setAddressFocused(false);
     navigateTo(target);
     addressRef.current?.blur();
   };
@@ -120,13 +185,13 @@ export function BrowserApp({ win }: AppWindowProps) {
   const back = () => {
     if (!activeTab || activeTab.historyIndex <= 0) return;
     updateTab(activeTabId, (tab) => ({ ...tab, historyIndex: tab.historyIndex - 1 }));
-    setAddress(activeTab.history[activeTab.historyIndex - 1] === 'nova://newtab' ? '' : activeTab.history[activeTab.historyIndex - 1]);
+    setAddress(addressFor(activeTab.history[activeTab.historyIndex - 1]));
   };
 
   const forward = () => {
     if (!activeTab || activeTab.historyIndex >= activeTab.history.length - 1) return;
     updateTab(activeTabId, (tab) => ({ ...tab, historyIndex: tab.historyIndex + 1 }));
-    setAddress(activeTab.history[activeTab.historyIndex + 1] === 'nova://newtab' ? '' : activeTab.history[activeTab.historyIndex + 1]);
+    setAddress(addressFor(activeTab.history[activeTab.historyIndex + 1]));
   };
 
   const bookmarked = data.bookmarks.some((bookmark) => bookmark.url === currentUrl);
@@ -181,7 +246,7 @@ export function BrowserApp({ win }: AppWindowProps) {
           className="browser__newtab-search"
           onSubmit={(event) => {
             event.preventDefault();
-            const target = normalizeUrl(query);
+            const target = normalizeUrl(query, lang);
             if (target) {
               navigateTo(target);
               setQuery('');
@@ -197,19 +262,19 @@ export function BrowserApp({ win }: AppWindowProps) {
           />
         </form>
         <div className="browser__section">
-          <div className="browser__section-title">{t('Frequently visited')}</div>
+          <div className="browser__section-title">{t('Popular searches')}</div>
           <div className="browser__shortcuts">
             {SHORTCUTS.map((shortcut) => (
               <button
-                key={shortcut.url}
+                key={shortcut.query}
                 className="browser__shortcut"
-                onClick={() => navigateTo(shortcut.url)}
-                title={shortcut.url}
+                onClick={() => navigateTo(novaSearchUrl(shortcut.query, lang))}
+                title={t('Search the open web for “{query}”', { query: shortcut.query })}
               >
                 <span className="browser__shortcut-icon" style={{ background: shortcut.color }}>
                   {shortcut.letter}
                 </span>
-                {shortcut.label}
+                {t(shortcut.label)}
               </button>
             ))}
           </div>
@@ -244,7 +309,10 @@ export function BrowserApp({ win }: AppWindowProps) {
           </div>
         )}
         <div className="browser__newtab-note">
-          <Lock size={12} /> {t('This is a simulated browser shell. Pages are loaded inside an iframe; sites that forbid embedding are shown with an explanation.')}
+          <Lock size={12} />{' '}
+          {t(
+            'Search runs for real: queries are answered from the Wikipedia and DuckDuckGo APIs. Whole websites open in an embedded frame, and sites that forbid embedding are explained instead of faked.',
+          )}
         </div>
       </div>
     ),
@@ -327,16 +395,64 @@ export function BrowserApp({ win }: AppWindowProps) {
           <Home size={15} />
         </button>
         <div className="browser__address">
-          <Lock size={12} className="faint" />
+          {isSearch || isNewTab ? <Search size={12} className="faint" /> : <Lock size={12} className="faint" />}
           <input
             ref={addressRef}
             value={address}
-            placeholder={t('Search or enter address')}
-            aria-label={t('Search or enter address')}
+            placeholder={t('Search the web or enter an address')}
+            aria-label={t('Search the web or enter an address')}
             onChange={(event) => setAddress(event.target.value)}
-            onFocus={(event) => event.currentTarget.select()}
+            onFocus={(event) => {
+              setAddressFocused(true);
+              event.currentTarget.select();
+            }}
+            onBlur={() => window.setTimeout(() => setAddressFocused(false), 120)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                setSuggestions([]);
+                setAddressFocused(false);
+                event.currentTarget.blur();
+              }
+            }}
           />
-          {!isNewTab && (
+          {addressFocused && suggestions.length > 0 && (
+            <div className="browser__suggest">
+              {suggestions.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className="browser__suggest-row"
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    setSuggestions([]);
+                    setAddressFocused(false);
+                    openArticle(item);
+                    addressRef.current?.blur();
+                  }}
+                >
+                  <Search size={12} />
+                  <span className="truncate">{item}</span>
+                  <span className="tiny faint">{t('Article')}</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                className="browser__suggest-row browser__suggest-row--all"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  const target = normalizeUrl(address, lang);
+                  setSuggestions([]);
+                  setAddressFocused(false);
+                  if (target) navigateTo(target);
+                  addressRef.current?.blur();
+                }}
+              >
+                <Globe2 size={12} />
+                <span className="truncate">{t('Search for “{query}”', { query: address })}</span>
+              </button>
+            </div>
+          )}
+          {!isNewTab && !isSearch && !isArticle && (
             <button type="button" className="icon-btn" onClick={toggleBookmark} title={bookmarked ? t('Remove bookmark') : t('Add bookmark')}>
               {bookmarked ? <Star size={14} fill="var(--accent)" color="var(--accent)" /> : <StarOff size={14} />}
             </button>
@@ -453,7 +569,23 @@ export function BrowserApp({ win }: AppWindowProps) {
           </div>
         )}
 
-        {isNewTab ? (
+        {isSearch ? (
+          <SearchPage
+            query={(novaPage as { query: string }).query}
+            lang={(novaPage as { lang: string }).lang}
+            onOpenArticle={openArticle}
+            onOpenExternal={openExternal}
+            onSearch={search}
+          />
+        ) : isArticle ? (
+          <ArticlePage
+            title={(novaPage as { title: string }).title}
+            lang={(novaPage as { lang: string }).lang}
+            onOpenExternal={openExternal}
+            onSearch={search}
+            onBack={back}
+          />
+        ) : isNewTab ? (
           newTabPage
         ) : blocked ? (
           <div className="browser__blocked">
