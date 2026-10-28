@@ -16,7 +16,12 @@
  * sub-paths and on a root deployment.
  */
 
-const VERSION = 'nova-v1';
+/**
+ * Bump on every release: the install handler deletes every cache whose name
+ * does not start with this string, so a new version is what evicts the old shell
+ * instead of leaving users on a stale index.html.
+ */
+const VERSION = 'nova-v2';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const scope = self.registration.scope;
