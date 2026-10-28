@@ -204,7 +204,7 @@ def window(x, y, w, h, title, accent=ACCENT, icon="N", body="", controls=True, t
 
 
 def desktop_icons():
-    items = [("Files", "▣", "#6fc9ff"), ("Browser", "◍", "#62c9ff"), ("Code", "{}", "#4aa8ff"),
+    items = [("Files", "▣", "#6fc9ff"), ("Code", "{}", "#4aa8ff"), ("Browser", "◍", "#62c9ff"),
              ("Games", "◆", "#a586ff"), ("Trash", "⌫", "#7f8da5")]
     out = []
     for index, (label, glyph, color) in enumerate(items):

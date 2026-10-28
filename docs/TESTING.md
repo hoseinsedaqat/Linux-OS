@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 235 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
+npm run test        # Vitest: 242 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -157,14 +157,17 @@ dismisses either surface if one appears anyway, so the helper stays honest.
   redirection effects, `grep`/`head`/`wc`/`sort`/`uniq`, `cd`, `rm -r`, unknown commands), the
   Markdown parser (blocks, inline tokens, plain text, slugs, malformed input), local usage counters,
   Writer/Impress templates and the four handbooks the Documentation app ships.
-- `tests/round4-ui.test.tsx` (7) — session restore through a real `Desktop` render (saved windows come
+- `tests/round4-ui.test.tsx` (14) — Code's position on the main screen (second desktop icon, first
+  eight dock favourites, opens on double-click, and the v2→v4 launcher migration that promotes it
+  without dropping icons), session restore through a real `Desktop` render (saved windows come
   back, restore-off stays empty, the live layer is written back), the snap-layout menu (opens from the
   title bar, snaps only the clicked window, leaves minimised windows alone, arranges columns without
   overlap), and Code's `Ctrl+Shift+P` palette.
 
 ### Round-4 manual checks
 
-61. The desktop shows **Code**; double-clicking it opens the editor (also in the Applications menu and `Ctrl+K`).
+61. The desktop shows **Code** as the second icon (right under Files) and the dock shows it in the first eight buttons; double-clicking opens the editor (also in the Applications menu and `Ctrl+K`).
+61b. On a profile created before Code existed, reload once: Code appears second without any other icon moving or disappearing.
 62. Open two apps, arrange them, reload the page: the same windows come back in the same places, on the
     same workspace, with the previously active window focused. Turn *Restore windows on reload* off,
     reload: the desktop starts empty again.

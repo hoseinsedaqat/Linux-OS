@@ -5,7 +5,7 @@
 **A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
 [![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
-[![Tests](https://img.shields.io/badge/tests-235%20passing-3ddc97?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/tests-242%20passing-3ddc97?style=for-the-badge)](#testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
@@ -95,7 +95,7 @@ Everything below is wired end to end — no placeholder switches.
 
 | Feature | What you get |
 | --- | --- |
-| **Code on the desktop** | `Code` now ships as a first-class desktop icon and favourite, next to Files. |
+| **Code on the desktop** | `Code` is the **second icon** on the desktop (right under Files) and the third button in the dock, so it is visible without scrolling. Existing profiles are migrated: a saved layout is reordered, never reset. |
 | **Snap layouts + restored sessions** | A layout button in every title bar snaps *one window* (six corner/half targets) or *all windows* (side by side, stacked, grid, focus + sidebar, cascade). The window layer is saved to `localStorage` on change, and reloading brings the same windows back, in the same places, on the same workspace. It can be turned off in Settings → Desktop & Panel. |
 | **A shell with real plumbing** | `\|` pipelines, `>` and `>>` redirection, and new stages `grep`, `head`, `tail`, `wc`, `sort`, `uniq`, `find`, `tree`, `uname`, `date`, `time`, `whoami`. Logic lives in a pure module (`src/apps/terminal/shell.ts`) that returns text plus *effects*, so it is unit-tested without a DOM. |
 | **Cross-tab window sync** | A `BroadcastChannel` mirrors windows, themes, files and notifications between tabs of the same origin — two tabs behave like two monitors. Broadcast-only, so the static GitHub Pages build keeps working. |
@@ -146,7 +146,7 @@ persisted best scores.
 | Application | What actually works |
 | --- | --- |
 | **Files** | Every home folder + Desktop/Documents/Downloads/Pictures/Music/Videos/Notes/Favorites/Recent/Applications/Trash. Grid & list views, breadcrumbs, history, search, multi-select, drag & drop move, copy/cut/paste, duplicate, rename, trash/restore/permanent delete, details pane, inline image preview, "New file of any supported kind". |
-| **Code** | The editor: explorer over four roots (`~/Projects`, `~/Notes`, `~/Documents`, `~`), tabs, dirty indicators, syntax highlighting for TS/JS/JSON/CSS/HTML/MD/SH, find panel, line numbers, `Ctrl+S`/`Ctrl+F`, `Ctrl+Shift+P` command palette, Markdown preview, format/sort, `Tab`/`Shift+Tab` indent, status bar with language, cursor position and save state. See [below](#code--the-built-in-editor). |
+| **Code** | The editor, pinned to the desktop and the dock: explorer over four roots (`~/Projects`, `~/Notes`, `~/Documents`, `~`), tabs, dirty indicators, syntax highlighting for TS/JS/JSON/CSS/HTML/MD/SH, find panel, line numbers, `Ctrl+S`/`Ctrl+F`, `Ctrl+Shift+P` command palette, Markdown preview, format/sort, `Tab`/`Shift+Tab` indent, status bar with language, cursor position and save state. See [below](#code--the-built-in-editor). |
 | **Browser** | Tabs, back/forward/reload/home, bookmarks, history, downloads, new-tab page, embedded pages where the site allows framing, a clear explanation when `X-Frame-Options`/CSP blocks it, and Nova Search. |
 | **Writer** | Rich text with headings, bold/italic/underline, lists, alignment, colours, links, tables, find & replace, word/character count, five templates (including a Persian RTL letter), print, "Save as PDF" through the print dialog, save to the virtual FS, export TXT/HTML. |
 | **Calc** | 40 × 16 grid, formula bar, `SUM/AVERAGE/MIN/MAX/COUNT/ABS/ROUND/SQRT/PI`, ranges, dependency-based recalculation, circular-reference detection, cell styling, row/column insert/delete, multiple sheets, CSV import/export. |
@@ -292,7 +292,7 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # 235 Vitest tests (jsdom + Testing Library)
+npm run test       # 242 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
 npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
@@ -420,7 +420,7 @@ Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ```
 tsc -b          clean (strict, project references)
-vitest run      235 tests, 13 files, all passing
+vitest run      242 tests, 13 files, all passing
 vite build      production bundle ~165 kB index + lazy app chunks
 ```
 
