@@ -4,8 +4,7 @@ on:
   push:
     # `test` is this repository's default branch; `main` is listed so the same
     # workflow keeps working if the repository is later renamed/standardised.
-    # NOTE: the working branch is listed temporarily so CI can be validated on it.
-    branches: [main, test, arena/44d1638d-linux-os]
+    branches: [main, test]
   workflow_dispatch:
 
 permissions:
@@ -50,6 +49,19 @@ jobs:
                 safe=$(printf '%s' "$line" | tr '\n' ' ' | cut -c1-900)
                 echo "::error title=Vitest::$safe"
               done
+          fi
+
+      # Gives a red run a human-readable reason instead of a bare 404 from the
+      # Pages API: the repository owner has to enable Pages once.
+      - name: Check GitHub Pages status
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/${{ github.repository }}/pages")
+          echo "Pages API status: $code"
+          if [ "$code" = "404" ]; then
+            echo "::error title=GitHub Pages is not enabled::Open Settings -> Pages -> Build and deployment -> Source: GitHub Actions, then re-run this workflow. The build itself is ready and will publish to https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
           fi
 
       - name: Build

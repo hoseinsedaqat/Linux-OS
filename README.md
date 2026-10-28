@@ -145,8 +145,15 @@ npm run preview    # serve the production build locally
 
 1. Push the repository to GitHub (suggested name: `nova-linux-web`).
 2. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
-3. Push to `main` (or run the workflow manually). `.github/workflows/deploy.yml` will:
-   type-check, run the tests, build with `VITE_BASE=/<repo-name>/`, add `.nojekyll` and deploy `dist`.
+   This is the one setting that cannot be automated: the workflow token is not allowed to create
+   the Pages site, so `configure-pages` can only *configure* an existing one. Until it is flipped,
+   the run stops at **Configure Pages** with a `404` from the Pages API.
+3. Push to `test` (this repository's default branch), to `main`, or run the workflow manually with
+   **Run workflow**. `.github/workflows/deploy.yml` will type-check, run the tests, verify the Pages
+   status, build with `VITE_BASE=/<repo-name>/`, add `.nojekyll`, upload `dist` and deploy it.
+
+The live URL is `https://<user>.github.io/<repo>/`. If a run fails only at *Configure Pages*, the
+build is fine — enable Pages and press **Re-run all jobs**.
 
 The Vite `base` comes from `VITE_BASE`, so the same code works at a project sub-path
 (`https://user.github.io/<repo>/`) **and** at a domain root. There are no absolute asset URLs in the
