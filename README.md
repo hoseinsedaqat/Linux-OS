@@ -52,6 +52,30 @@ The desktop layout is fluid: the panel can sit on the **bottom, top, left or rig
 size, opacity and auto-hide, and the whole UI scales for small screens (windows become maximised
 sheets on mobile widths).
 
+### Desktop
+
+The desktop is a real workspace, not a wallpaper:
+
+- **An icon for every installed application** (14 out of the box), laid out in columns that grow to
+  the right and scroll when the screen is small — add or remove any of them and the choice is saved.
+- **Right-click the desktop** for *New folder / text file / document / spreadsheet / presentation /
+  note*, *Add app shortcut…*, wallpaper and display settings, "show desktop" and "restore default
+  icons". Anything created appears on the desktop immediately and opens in the right application.
+- **Right-click an icon** for open, add/remove from desktop, pin to the panel, reorder, rename,
+  properties or move to Trash. Right-click any app in the Applications menu to add it to the desktop.
+- Keyboard: arrows/tab move focus, `Enter` opens, `F2` renames, `Delete` moves a file to the Trash.
+- Double-click on a mouse, single tap on touch screens.
+
+### Panel, sound and brightness
+
+- A floating glass dock with launcher, pinned apps, running windows, network, **volume**, **brightness**,
+  battery, notifications, calendar and a show-desktop button.
+- The tray volume and brightness icons support the **mouse wheel**; both also live in Quick Settings.
+- One on-screen display is shared by every surface, so the panel, Quick Settings and the Settings app
+  can never disagree about the current level.
+- Brightness dims the desktop layer only (a real display-brightness API does not exist in a browser);
+  volume is simulated and clearly labelled as such.
+
 ---
 
 ## Feature tour
@@ -245,6 +269,10 @@ The suite runs in `jsdom` with Testing Library and covers:
 - the boot → login → desktop flow, the Applications menu, Quick Settings,
 - every registered app rendering without crashing, plus **every Accounting tab** and **every Settings
   section**,
+- the desktop surface: an icon for every installed application, column layout, adding/removing app
+  shortcuts, and files created from the desktop context menu showing up immediately,
+- volume and brightness: the slider track fill follows the value, the Quick Settings control and the
+  settings store agree, and both surfaces raise the same on-screen display,
 - real interactions: Terminal commands (and the `sudo` refusal), Notes autosave, Files folder
   creation through the dialog, Trash restore, Accounting create/validate, Calculator keypad,
   Browser navigation (including the iframe-blocked path), Software Center install/uninstall,

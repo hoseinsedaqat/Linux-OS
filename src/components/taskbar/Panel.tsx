@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Monitor,
   Power,
+  SunMedium,
   Volume2,
   VolumeX,
   Wifi,
@@ -45,6 +46,8 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
   const showLabels = useSettings((state) => state.dockShowLabels);
   const wifi = useSettings((state) => state.wifi);
   const volume = useSettings((state) => state.volume);
+  const brightness = useSettings((state) => state.brightness);
+  const setSetting = useSettings((state) => state.set);
   const favorites = useLauncher((state) => state.favorites);
   const installed = useLauncher((state) => state.installed);
   const windows = useWindows((state) => state.windows);
@@ -137,8 +140,32 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
       <button className="panel__tray-btn" title={t('Network')} onClick={() => toggleOverlay('quick')}>
         {wifi ? <Wifi size={15} /> : <WifiOff size={15} style={{ color: 'var(--danger)' }} />}
       </button>
-      <button className="panel__tray-btn" title={t('Sound')} onClick={() => toggleOverlay('quick')}>
+      <button
+        className="panel__tray-btn"
+        title={`${t('Volume')}: ${volume}%`}
+        aria-label={`${t('Volume')}: ${volume}%`}
+        onClick={() => toggleOverlay('quick')}
+        onWheel={(event) => {
+          // Mouse wheel over the tray icon adjusts the simulated output volume.
+          const delta = event.deltaY > 0 ? -5 : 5;
+          const next = Math.min(100, Math.max(0, volume + delta));
+          if (next !== volume) setSetting('volume', next);
+        }}
+      >
         {volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+      </button>
+      <button
+        className="panel__tray-btn panel__tray-btn--brightness"
+        title={`${t('Brightness')}: ${brightness}%`}
+        aria-label={`${t('Brightness')}: ${brightness}%`}
+        onClick={() => toggleOverlay('quick')}
+        onWheel={(event) => {
+          const delta = event.deltaY > 0 ? -5 : 5;
+          const next = Math.min(100, Math.max(5, brightness + delta));
+          if (next !== brightness) setSetting('brightness', next);
+        }}
+      >
+        <SunMedium size={15} />
       </button>
       <button className="panel__tray-btn" title={`${t('Battery')}: 87%`} onClick={() => openApp('settings', { section: 'storage' })}>
         <BatteryMedium size={16} />
@@ -182,7 +209,7 @@ export function Panel({ metrics, onLock, onShutdown, onRestart }: PanelProps) {
         </span>
       </button>
       <button
-        className="panel__tray-btn"
+        className="panel__tray-btn panel__tray-btn--desktop"
         title={t('Show Desktop')}
         onClick={() => {
           const anyVisible = windows.some((win) => !win.minimized);
