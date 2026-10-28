@@ -45,14 +45,46 @@ test('the command palette launches an app and the window loads its chunk', async
 });
 
 test('the games library opens and minesweeper accepts a click', async ({ page }) => {
+  const diag: Record<string, unknown> = {};
+  page.on('console', (message) => {
+    if (message.type() === 'error') diag.consoleError = message.text().slice(0, 300);
+  });
   await signIn(page);
   await runFromPalette(page, 'games');
   await expect(page.locator('.games__title')).toBeVisible({ timeout: 20_000 });
   await page.locator('.games__card', { hasText: 'Minesweeper' }).locator('button', { hasText: /play/i }).click();
   const board = page.locator('.mines__board');
   await expect(board).toBeVisible({ timeout: 20_000 });
-  await board.locator('.mines__cell').nth(12).click();
-  await expect(board.locator('.mines__cell.is-open').first()).toBeVisible();
+  const cell = board.locator('.mines__cell').nth(12);
+  diag.windows = await page.locator('.window').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const title = node.querySelector('.window__titlebar')?.textContent?.trim();
+      const rect = node.getBoundingClientRect();
+      return { title, rect: [rect.x, rect.y, rect.width, rect.height], z: getComputedStyle(node).zIndex };
+    }),
+  );
+  diag.cell = await cell.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) as HTMLElement | null;
+    return {
+      rect: [rect.x, rect.y, rect.width, rect.height],
+      stage: (() => {
+        const stage = node.closest('.game__stage');
+        if (!stage) return null;
+        const box = stage.getBoundingClientRect();
+        return [box.x, box.y, box.width, box.height];
+      })(),
+      top: top ? `${top.tagName}.${String(top.className)}`.slice(0, 120) : 'none',
+      viewport: [window.innerWidth, window.innerHeight],
+    };
+  });
+  try {
+    await cell.click({ timeout: 6_000 });
+  } catch (error) {
+    diag.clickError = String(error).split('\n').slice(0, 6).join(' | ').slice(0, 900);
+  }
+  console.log('GAMES-DIAG ' + JSON.stringify(diag));
+  await expect(board.locator('.mines__cell.is-open').first()).toBeVisible({ timeout: 5_000 });
 });
 
 test('windows snap, desktops switch and the overview lists them', async ({ page }) => {
