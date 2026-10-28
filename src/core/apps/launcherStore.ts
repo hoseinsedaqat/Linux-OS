@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { AppId } from '@/types';
 import { APP_IDS, APP_META } from '@/core/apps/appMeta';
+import { useUsage } from '@/core/analytics/usage';
 
 const DEFAULT_INSTALLED = APP_IDS.filter((id) => APP_META[id].installed);
 
@@ -24,6 +25,7 @@ export const DEFAULT_DESKTOP_APPS: AppId[] = [
   'software',
   'monitor',
   'settings',
+  'code',
   'games',
   'trash',
 ];
@@ -55,10 +57,13 @@ export const useLauncher = create<LauncherState>()(
       favorites: DEFAULT_FAVORITES,
       recent: [],
       desktopApps: DEFAULT_DESKTOP_APPS,
-      recordUse: (appId) =>
+      recordUse: (appId) => {
+        // Local counter only: no network, no identifier (Settings → About).
+        useUsage.getState().record(appId);
         set((state) => ({
           recent: [appId, ...state.recent.filter((id) => id !== appId)].slice(0, 8),
-        })),
+        }));
+      },
       toggleFavorite: (appId) =>
         set((state) => ({
           favorites: state.favorites.includes(appId)
@@ -112,7 +117,7 @@ export const useLauncher = create<LauncherState>()(
     {
       name: 'nova-linux.launcher.v1',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => ({
         installed: state.installed,
         favorites: state.favorites,
@@ -129,6 +134,18 @@ export const useLauncher = create<LauncherState>()(
             favorites: state.favorites ?? DEFAULT_FAVORITES,
             recent: state.recent ?? [],
             desktopApps: DEFAULT_DESKTOP_APPS,
+          } as LauncherState;
+        }
+        if (version < 3) {
+          // v3 puts Code on the desktop and in the dock for existing profiles,
+          // without dropping the icons the user added or removed themselves.
+          const desktopApps = state.desktopApps ?? DEFAULT_DESKTOP_APPS;
+          const favorites = state.favorites ?? DEFAULT_FAVORITES;
+          return {
+            ...state,
+            installed: state.installed ?? DEFAULT_INSTALLED,
+            favorites: favorites.includes('code') ? favorites : [...favorites, 'code'],
+            desktopApps: desktopApps.includes('code') ? desktopApps : [...desktopApps, 'code'],
           } as LauncherState;
         }
         return state as LauncherState;

@@ -1,10 +1,11 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Columns2, Maximize2, Minus, PanelLeft, PanelRight, X } from 'lucide-react';
+import { Columns2, LayoutGrid, Maximize2, Minus, PanelLeft, PanelRight, X } from 'lucide-react';
 import type { WindowInstance } from '@/types';
 import { useWindows, workspaceOf } from '@/core/window-manager/windowsStore';
 import { useSettings } from '@/core/themes/settingsStore';
 import { clampRect, currentMetrics } from '@/core/window-manager/metrics';
+import { LAYOUTS, SNAP_PRESETS } from '@/core/window-manager/session';
 import { AppIcon } from '@/components/common/AppIcon';
 import { useContextMenu } from '@/components/common/ContextMenu';
 import { useT } from '@/core/localization/i18n';
@@ -40,6 +41,20 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
   const workspace = useWindows((state) => state.workspace);
   const [interaction, setInteraction] = useState<Interaction | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [layoutsOpen, setLayoutsOpen] = useState(false);
+  const applyLayout = useWindows((state) => state.applyLayout);
+  const windowCount = useWindows((state) => state.windows.filter((item) => !item.minimized).length);
+
+  useEffect(() => {
+    if (!layoutsOpen) return;
+    const close = () => setLayoutsOpen(false);
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('keydown', close);
+    return () => {
+      window.removeEventListener('pointerdown', close);
+      window.removeEventListener('keydown', close);
+    };
+  }, [layoutsOpen]);
   const menu = useContextMenu();
   const frameRef = useRef<HTMLDivElement | null>(null);
   const AppComponent = APP_COMPONENTS[win.appId];
@@ -246,6 +261,56 @@ export function WindowFrame({ win }: { win: WindowInstance }) {
             <span className="window__title-text">{win.title}</span>
           </div>
           <div className="window__controls" onPointerDown={(event) => event.stopPropagation()}>
+            <div className="window__layouts-anchor">
+              <button
+                className="window__control window__control--layouts"
+                onClick={() => setLayoutsOpen((open) => !open)}
+                title={t('Snap layouts')}
+                aria-label={t('Snap layouts')}
+                aria-expanded={layoutsOpen}
+              >
+                <LayoutGrid />
+              </button>
+              {layoutsOpen && (
+                <div className="window__layouts" role="menu" onPointerDown={(event) => event.stopPropagation()}>
+                  <div className="window__layouts-title">{t('This window')}</div>
+                  <div className="window__layouts-grid">
+                    {SNAP_PRESETS.map((preset) => (
+                      <button
+                        key={preset.mode}
+                        className={cn('window__layout-cell', `is-${preset.mode}`, win.snapped === preset.mode && 'is-active')}
+                        onClick={() => {
+                          snapWindow(win.id, preset.mode);
+                          setLayoutsOpen(false);
+                        }}
+                        title={t(preset.label)}
+                        aria-label={t(preset.label)}
+                      >
+                        <span />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="window__layouts-title">
+                    {t('All windows')} <span className="faint">({windowCount})</span>
+                  </div>
+                  <div className="window__layouts-list">
+                    {LAYOUTS.map((layout) => (
+                      <button
+                        key={layout.id}
+                        className="window__layout-option"
+                        onClick={() => {
+                          applyLayout(layout.id);
+                          setLayoutsOpen(false);
+                        }}
+                      >
+                        <strong>{t(layout.label)}</strong>
+                        <span>{t(layout.hint)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               className="window__control window__control--min"
               onClick={() => minimizeWindow(win.id)}

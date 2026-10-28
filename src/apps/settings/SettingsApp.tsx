@@ -33,13 +33,18 @@ import { estimateUsage } from '@/core/persistence/db';
 import { useUiStatus } from '@/core/persistence/kvStore';
 import { useNotifications } from '@/core/notifications/notificationsStore';
 import { notify, notifyError, notifySuccess } from '@/core/notifications/notificationsStore';
-import { createBackup, backupToJson, parseBackup, restoreBackup, clearDemoData, clearEverything } from '@/services/backup';
+import { createBackup, backupToJson, parseBackup, restoreBackup, clearDemoData } from '@/services/backup';
 import { SectionHeader, Segmented, SliderRow, Toggle } from '@/components/common/Controls';
 import { ConfirmDialog } from '@/components/common/Modal';
 import { downloadText, formatBytes, cn, fileSize } from '@/utils';
 import { NovaLogo } from '@/components/common/NovaLogo';
 import { previewSound } from '@/core/audio/sfx';
 import { useShell } from '@/core/apps/shellStore';
+import { useUsage, usageRows } from '@/core/analytics/usage';
+import { compressImage } from '@/utils/image';
+import { profileReport, resetProfile } from '@/services/storageReport';
+import { Modal } from '@/components/common/Modal';
+import { APP_META } from '@/core/apps/appMeta';
 
 type SectionId =
   | 'appearance'
@@ -109,7 +114,13 @@ export function SettingsApp({ win }: AppWindowProps) {
   const wallpaperRef = useRef<HTMLInputElement | null>(null);
   const [section, setSection] = useState<SectionId>((win.payload?.section as SectionId) ?? 'appearance');
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
-  const [confirm, setConfirm] = useState<null | 'clear-demo' | 'clear-all'>(null);
+  const [confirm, setConfirm] = useState<null | 'clear-demo'>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [report, setReport] = useState<ReturnType<typeof profileReport> | null>(null);
+  const usageCounts = useUsage((state) => state.counts);
+  const usageLast = useUsage((state) => state.lastUsed);
+  const usageTotal = useUsage((state) => state.totalOpens);
+  const resetUsage = useUsage((state) => state.reset);
   const [busy, setBusy] = useState(false);
   const storageWarning = useUiStatus((state) => state.storageWarning);
   const notificationsEnabled = useSettings((state) => state.notificationsEnabled);
@@ -163,26 +174,20 @@ export function SettingsApp({ win }: AppWindowProps) {
     }
   };
 
-  const pickWallpaper = (file: File) => {
+  const pickWallpaper = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      notifyError(t('Choose image'), 'Please select a PNG, JPG or WEBP image.');
+      notifyError(t('Choose image'), t('Please select a PNG, JPG or WEBP image.'));
       return;
     }
-    if (file.size > 1_500_000) {
-      notifyError(t('Choose image'), 'Please select an image smaller than 1.5 MB.');
-      return;
+    try {
+      // Re-encoded in a canvas so a 6 MB photo does not fill LocalStorage.
+      const dataUrl = await compressImage(file);
+      set('customWallpaper', dataUrl);
+      set('wallpaper', 'custom');
+      notifySuccess(t('Wallpaper updated'), `${file.name} · ${formatBytes(dataUrl.length)}`);
+    } catch {
+      notifyError(t('That image could not be used'), t('Try a JPG or PNG under 8 MB.'));
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        set('customWallpaper', String(reader.result));
-        set('wallpaper', 'custom');
-        notifySuccess(t('Wallpaper updated'), file.name);
-      } catch {
-        notifyError(t('Storage is full'), 'Try a smaller image — the wallpaper is stored in this browser.');
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   const toggleFullscreen = async () => {
@@ -193,6 +198,22 @@ export function SettingsApp({ win }: AppWindowProps) {
       notifyError(t('Fullscreen'), 'Your browser blocked the fullscreen request.');
     }
   };
+
+  const openReset = () => {
+    setReport(profileReport());
+    setResetOpen(true);
+  };
+
+  const confirmReset = async () => {
+    await resetProfile();
+    setResetOpen(false);
+    setReport(null);
+    notifySuccess(t('Profile reset'), t('Reloading the desktop with a clean profile…'));
+    window.setTimeout(() => window.location.reload(), 700);
+  };
+
+  const usageList = usageRows(usageCounts, usageLast).slice(0, 6);
+  const usageMax = usageList[0]?.count ?? 1;
 
   const renderSection = () => {
     switch (section) {
@@ -351,6 +372,32 @@ export function SettingsApp({ win }: AppWindowProps) {
                 </div>
                 <Toggle checked={settings.dockShowLabels} onChange={(value) => set('dockShowLabels', value)} label={t('Show app names in panel')} />
               </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Restore windows on reload')}</div>
+                  <div className="settings-row__desc">
+                    {t('Reopen the windows you had open, in the same places, the next time you load the desktop.')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={settings.restoreWindows}
+                  onChange={(value) => set('restoreWindows', value)}
+                  label={t('Restore windows on reload')}
+                />
+              </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Mirror this session across tabs')}</div>
+                  <div className="settings-row__desc">
+                    {t('Two tabs of this site behave like two monitors: windows, theme and saved files stay in sync. Nothing leaves the browser.')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={settings.crossTabSync}
+                  onChange={(value) => set('crossTabSync', value)}
+                  label={t('Mirror this session across tabs')}
+                />
+              </div>
             </div>
           </>
         );
@@ -490,10 +537,37 @@ export function SettingsApp({ win }: AppWindowProps) {
               hidden
               onChange={(event) => {
                 const file = event.target.files?.[0];
-                if (file) pickWallpaper(file);
+                if (file) void pickWallpaper(file);
                 event.target.value = '';
               }}
             />
+            <div className="settings-card" style={{ marginTop: 14 }}>
+              <div className="settings-row__title">{t('Layering')}</div>
+              <div className="settings-row__desc">
+                {t('Dim and blur the wallpaper behind your windows. You can also drop an image file straight onto the desktop.')}
+              </div>
+              <SliderRow
+                label={t('Wallpaper dim')}
+                value={settings.wallpaperDim}
+                min={0}
+                max={80}
+                onChange={(value) => set('wallpaperDim', value)}
+                format={(value) => `${value}%`}
+                icon={Sun}
+              />
+              <SliderRow
+                label={t('Wallpaper blur')}
+                value={settings.wallpaperBlur}
+                min={0}
+                max={20}
+                onChange={(value) => set('wallpaperBlur', value)}
+                format={(value) => `${value}px`}
+                icon={SlidersHorizontal}
+              />
+              <div className="settings-note">
+                {t('Drag & drop: any PNG, JPG or WEBP image dropped on the desktop becomes the wallpaper. It is resized to 1920 px and stored in this browser only.')}
+              </div>
+            </div>
           </>
         );
 
@@ -701,10 +775,11 @@ export function SettingsApp({ win }: AppWindowProps) {
                 <button className="btn btn--danger" onClick={() => setConfirm('clear-demo')}>
                   {t('Clear Demo Data')}
                 </button>
-                <button className="btn btn--danger" onClick={() => setConfirm('clear-all')}>
-                  {t('Clear everything')}
+                <button className="btn btn--danger" onClick={openReset}>
+                  {t('Reset this browser profile')}
                 </button>
               </div>
+              <p className="settings-row__desc">{t('Review exactly what will be erased before anything is deleted.')}</p>
             </div>
           </>
         );
@@ -831,6 +906,35 @@ export function SettingsApp({ win }: AppWindowProps) {
               <div className="settings-note">
                 {t('Built as an open, front-end-only project. No backend, no API keys, no analytics.')}
               </div>
+              <div className="about-usage">
+                <div className="settings-row__title">
+                  {t('Your usage on this device')}
+                  <span className="faint tiny" style={{ marginInlineStart: 8 }}>
+                    {t('{n} app launches · local only', { n: usageTotal })}
+                  </span>
+                </div>
+                {usageList.length === 0 ? (
+                  <p className="settings-row__desc">{t('No launches recorded yet. Counters never leave this browser.')}</p>
+                ) : (
+                  <ul className="usage-list">
+                    {usageList.map((row) => (
+                      <li key={row.appId}>
+                        <span className="usage-list__name">{t(APP_META[row.appId]?.name ?? row.appId)}</span>
+                        <span className="usage-list__bar" aria-hidden>
+                          <span style={{ width: `${Math.max(6, (row.count / usageMax) * 100)}%` }} />
+                        </span>
+                        <span className="usage-list__count numeric">{row.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                  <button className="btn btn--ghost btn--sm" onClick={resetUsage} disabled={usageTotal === 0}>
+                    <RotateCcw size={13} /> {t('Clear counters')}
+                  </button>
+                  <span className="tiny faint">{t('Stored in localStorage as nova-linux.usage.v1 — nothing is transmitted.')}</span>
+                </div>
+              </div>
               <div className="row" style={{ gap: 8 }}>
                 <button className="btn" onClick={reset}>
                   <RotateCcw size={14} /> {t('Reset to default')}
@@ -888,20 +992,58 @@ export function SettingsApp({ win }: AppWindowProps) {
           });
         }}
       />
-      <ConfirmDialog
-        open={confirm === 'clear-all'}
-        title={t('Clear everything')}
-        message={`${t('This will delete all files, documents and settings stored in this browser.')} ${t('This action cannot be undone.')}`}
-        confirmLabel={t('Clear everything')}
-        danger
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => {
-          void clearEverything().then(() => {
-            setConfirm(null);
-            notifySuccess(t('Clear everything'), t('Settings reset to default'));
-          });
-        }}
-      />
+      <Modal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title={t('Reset this browser profile')}
+        icon={<Shield size={16} />}
+        footer={
+          <>
+            <button className="btn" onClick={() => setResetOpen(false)}>
+              {t('Cancel')}
+            </button>
+            <button className="btn btn--danger" onClick={() => void confirmReset()}>
+              {t('Delete everything and reload')}
+            </button>
+          </>
+        }
+      >
+        {report && (
+          <>
+            <p className="settings-row__desc" style={{ marginTop: 0 }}>
+              {t('Everything below lives in this browser only. This is exactly what will be deleted:')}
+            </p>
+            <ul className="reset-list">
+              {[
+                [t('Files'), report.files],
+                [t('Folders'), report.folders],
+                [t('Items in Trash'), report.trashed],
+                [t('Notes'), report.notes],
+                [t('Documents'), report.documents],
+                [t('Spreadsheets'), report.spreadsheets],
+                [t('Presentations'), report.presentations],
+                [t('Images'), report.images],
+                [t('Desktop icons'), report.desktopIcons],
+                [t('Pinned apps'), report.pinnedApps],
+                [t('Notifications'), report.notifications],
+                [t('Saved wallpaper'), report.hasWallpaper ? 1 : 0],
+                [t('Restored window session'), report.hasSession ? 1 : 0],
+                [t('App launch counters'), report.usageRecords],
+                [t('Stored keys'), report.localKeys],
+              ].map(([label, value]) => (
+                <li key={String(label)}>
+                  <span>{label}</span>
+                  <span className={cn('numeric', Number(value) === 0 && 'faint')}>{value}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="settings-note" style={{ borderColor: 'rgba(239,71,111,0.4)' }}>
+              {t('Preferences, files, app data and counters are removed. The desktop reloads with the original demo content. This cannot be undone — export a backup first if you want to keep anything.')}
+            </div>
+          </>
+        )}
+      </Modal>
+
     </div>
   );
 }

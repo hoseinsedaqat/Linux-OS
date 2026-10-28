@@ -5,6 +5,7 @@ import { useLauncher } from '@/core/apps/launcherStore';
 import { currentMetrics } from '@/core/window-manager/metrics';
 import { uid } from '@/utils';
 import { playSound } from '@/core/audio/sfx';
+import { layoutRects, type LayoutId, type SavedSession } from '@/core/window-manager/session';
 
 interface OpenOptions {
   title?: string;
@@ -75,6 +76,10 @@ interface WindowsState {
   minimizeAll: () => void;
   restoreAll: () => void;
   closeAll: () => void;
+  /** Rearrange the visible windows of the current workspace. */
+  applyLayout: (layout: LayoutId) => void;
+  /** Rebuild the window layer from a saved session. */
+  restoreSession: (session: SavedSession) => void;
 }
 
 /**
@@ -355,4 +360,65 @@ export const useWindows = create<WindowsState>((set, get) => ({
   },
 
   closeAll: () => set({ windows: [], activeId: null }),
+
+  applyLayout: (layout) => {
+    const state = get();
+    const area = currentMetrics().workArea;
+    const targets = state.windows
+      .filter((win) => workspaceOf(win) === state.workspace && !win.minimized)
+      .sort((a, b) => a.createdAt - b.createdAt);
+    if (targets.length === 0) return;
+    const rects = layoutRects(layout, area, targets.length);
+    const order = new Map(targets.map((win, index) => [win.id, rects[index]]));
+    set({
+      windows: state.windows.map((win) => {
+        const rect = order.get(win.id);
+        if (!rect) return win;
+        return {
+          ...win,
+          ...rect,
+          maximized: false,
+          snapped: undefined,
+          restoreRect: undefined,
+        };
+      }),
+    });
+  },
+
+  restoreSession: (session) => {
+    const area = currentMetrics().workArea;
+    let z = 120;
+    const windows: WindowInstance[] = session.windows
+      .filter((saved) => Boolean(APP_META[saved.appId]))
+      .slice(0, 12)
+      .map((saved) => {
+        z += 1;
+        const width = Math.min(Math.max(240, saved.rect.width), area.width);
+        const height = Math.min(Math.max(180, saved.rect.height), area.height);
+        return {
+          id: uid('win'),
+          appId: saved.appId,
+          title: saved.title,
+          x: Math.min(Math.max(area.x, saved.rect.x), area.x + area.width - width),
+          y: Math.min(Math.max(area.y, saved.rect.y), area.y + area.height - height),
+          width,
+          height,
+          zIndex: z,
+          minimized: saved.minimized,
+          maximized: saved.maximized,
+          snapped: saved.snapped,
+          payload: saved.payload,
+          createdAt: Date.now(),
+          workspace: Math.min(Math.max(1, saved.workspace), WORKSPACE_COUNT),
+        } satisfies WindowInstance;
+      });
+    if (windows.length === 0) return;
+    const activeIndex = session.activeIndex >= 0 && session.activeIndex < windows.length ? session.activeIndex : windows.length - 1;
+    set({
+      windows,
+      activeId: windows[activeIndex].id,
+      nextZ: z,
+      workspace: Math.min(Math.max(1, session.workspace), WORKSPACE_COUNT),
+    });
+  },
 }));

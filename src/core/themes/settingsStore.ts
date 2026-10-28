@@ -35,6 +35,10 @@ export const DEFAULT_SETTINGS: SettingsState = {
   keyboardLayout: 'us',
   virtualResolution: 'auto',
   dockShowLabels: false,
+  restoreWindows: true,
+  crossTabSync: true,
+  wallpaperDim: 0,
+  wallpaperBlur: 0,
 };
 
 interface SettingsStore extends SettingsState {
@@ -58,14 +62,15 @@ export const useSettings = create<SettingsStore>()(
     {
       name: 'nova-linux.settings.v1',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
+      version: 2,
       partialize: (state) => {
         const { set: _set, patch: _patch, reset: _reset, ...rest } = state;
         return rest;
       },
       migrate: (persisted, version) => {
         if (version < 1) return { ...DEFAULT_SETTINGS, ...(persisted as object) };
-        return persisted as SettingsStore;
+        // v2 added session restore, cross-tab sync and wallpaper dim/blur.
+        return { ...DEFAULT_SETTINGS, ...(persisted as object) } as SettingsStore;
       },
     },
   ),

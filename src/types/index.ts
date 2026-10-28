@@ -27,7 +27,8 @@ export type AppId =
   | 'music'
   | 'photos'
   | 'weather'
-  | 'code';
+  | 'code'
+  | 'docs';
 
 export type Language = 'en' | 'fa';
 export type ThemeMode = 'dark' | 'light';
@@ -184,6 +185,13 @@ export interface SettingsState {
   keyboardLayout: 'us' | 'uk' | 'de' | 'ir';
   virtualResolution: 'auto' | '1280x720' | '1440x900' | '1920x1080';
   dockShowLabels: boolean;
+  /** Reopen the windows that were open when the tab was closed. */
+  restoreWindows: boolean;
+  /** Mirror settings, windows and notifications between tabs of this origin. */
+  crossTabSync: boolean;
+  /** Dim (0-80 %) and blur (0-20 px) applied on top of the wallpaper image. */
+  wallpaperDim: number;
+  wallpaperBlur: number;
 }
 
 /* ------------------------------------------------------------------ */

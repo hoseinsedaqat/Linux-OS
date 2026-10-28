@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { RotateCcw, User, Users, Trophy } from 'lucide-react';
 import type { AppWindowProps } from '@/core/apps/types';
 import { useT } from '@/core/localization/i18n';
@@ -23,6 +23,7 @@ export function TicTacToeApp(_props: AppWindowProps) {
   const [thinking, setThinking] = useState(false);
   const [tally, setTally] = useState({ wins: 0, losses: 0, draws: 0 });
   const [record, setRecord] = useState(false);
+  const cellsRef = useRef<Array<HTMLButtonElement | null>>([]);
 
   const winner = winnerOf(board);
   const draw = isDraw(board);
@@ -121,6 +122,22 @@ export function TicTacToeApp(_props: AppWindowProps) {
           {board.map((cell, index) => (
             <button
               key={index}
+              ref={(node) => {
+                cellsRef.current[index] = node;
+              }}
+              tabIndex={index === 0 ? 0 : -1}
+              onKeyDown={(event) => {
+                const moves: Record<string, number> = {
+                  ArrowLeft: index % 3 === 0 ? index + 2 : index - 1,
+                  ArrowRight: index % 3 === 2 ? index - 2 : index + 1,
+                  ArrowUp: index < 3 ? index + 6 : index - 3,
+                  ArrowDown: index > 5 ? index - 6 : index + 3,
+                };
+                if (event.key in moves) {
+                  event.preventDefault();
+                  cellsRef.current[moves[event.key]]?.focus();
+                }
+              }}
               className={cn(
                 'ttt__cell',
                 cell && `is-${cell.toLowerCase()}`,
@@ -134,6 +151,20 @@ export function TicTacToeApp(_props: AppWindowProps) {
             </button>
           ))}
         </div>
+
+        <p className="sr-only" aria-live="polite">
+          {winner
+            ? winner.mark === 'X'
+              ? twoPlayers
+                ? t('X wins!')
+                : t('You win!')
+              : twoPlayers
+                ? t('O wins!')
+                : t('Computer wins')
+            : draw
+              ? t('It is a draw')
+              : t('{mark} to move', { mark: turn })}
+        </p>
 
         <div className="ttt__status">
           {winner ? (

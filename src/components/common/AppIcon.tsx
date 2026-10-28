@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Activity,
   Bomb,
   Bug,
@@ -58,6 +59,7 @@ const ICONS: Record<string, LucideIcon> = {
   image: ImageIcon,
   'cloud-sun': CloudSun,
   code: Code2,
+  book: BookOpen,
 };
 
 export function iconForApp(appId: AppId): LucideIcon {

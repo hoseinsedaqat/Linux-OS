@@ -250,6 +250,18 @@ export const APP_META: Record<AppId, AppDefinition> = {
     color: '#4aa8ff',
     defaultSize: { width: 1080, height: 720 },
     minSize: { width: 480, height: 380 },
+    pinned: true,
+    installed: true,
+  },
+  docs: {
+    id: 'docs',
+    name: 'Documentation',
+    description: 'Read the project handbooks that ship with this build.',
+    category: 'Development',
+    icon: 'book',
+    color: '#a586ff',
+    defaultSize: { width: 980, height: 700 },
+    minSize: { width: 460, height: 380 },
     installed: true,
   },
   music: {

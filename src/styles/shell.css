@@ -3680,3 +3680,184 @@ html[dir='rtl'] .login__footer .select {
     display: none;
   }
 }
+
+/* ---------- round 4: snap layouts popover ---------- */
+
+.window__layouts-anchor {
+  position: relative;
+  display: flex;
+}
+
+.window__control--layouts {
+  opacity: 0.7;
+}
+
+.window__control--layouts:hover,
+.window__control--layouts[aria-expanded='true'] {
+  opacity: 1;
+  background: var(--hover);
+}
+
+.window__layouts {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  width: 246px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-2);
+  background: var(--popover-bg);
+  box-shadow: var(--shadow-lg);
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+}
+
+.window__layouts-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.window__layouts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.window__layout-cell {
+  height: 34px;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-1);
+  background: var(--surface-2);
+  cursor: pointer;
+  display: grid;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.window__layout-cell span {
+  border-radius: 3px;
+  background: rgba(var(--accent-rgb), 0.24);
+}
+
+.window__layout-cell:hover {
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: var(--hover);
+}
+
+.window__layout-cell.is-active {
+  border-color: var(--accent);
+}
+
+.window__layout-cell.is-left span {
+  width: 50%;
+  height: 100%;
+}
+
+.window__layout-cell.is-right {
+  justify-items: end;
+}
+
+.window__layout-cell.is-right span {
+  width: 50%;
+  height: 100%;
+}
+
+.window__layout-cell.is-top-left span {
+  width: 50%;
+  height: 50%;
+  align-self: start;
+  justify-self: start;
+}
+
+.window__layout-cell.is-top-right span {
+  width: 50%;
+  height: 50%;
+  align-self: start;
+  justify-self: end;
+}
+
+.window__layout-cell.is-bottom-left span {
+  width: 50%;
+  height: 50%;
+  align-self: end;
+  justify-self: start;
+}
+
+.window__layout-cell.is-bottom-right span {
+  width: 50%;
+  height: 50%;
+  align-self: end;
+  justify-self: end;
+}
+
+.window__layouts-list {
+  display: grid;
+  gap: 3px;
+}
+
+.window__layout-option {
+  display: grid;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+
+.window__layout-option strong {
+  font-size: calc(11.5px * var(--font-scale));
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.window__layout-option span {
+  font-size: calc(10px * var(--font-scale));
+  color: var(--text-3);
+}
+
+.window__layout-option:hover {
+  background: var(--hover);
+  border-color: var(--border-1);
+}
+
+/* ---------- round 4: wallpaper drop target ---------- */
+
+.desktop__drop {
+  position: absolute;
+  inset: 18px;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  border-radius: 18px;
+  border: 2px dashed rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.08);
+  backdrop-filter: blur(4px);
+  color: var(--text-1);
+  pointer-events: none;
+  text-align: center;
+  padding: 20px;
+}
+
+.desktop__drop strong {
+  font-size: calc(14px * var(--font-scale));
+}
+
+.desktop__drop span {
+  font-size: calc(11.5px * var(--font-scale));
+  color: var(--text-2);
+}
+
+@media (max-width: 420px) {
+  .window__layouts {
+    width: 212px;
+    padding: 8px;
+  }
+}

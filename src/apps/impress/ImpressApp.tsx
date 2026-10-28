@@ -22,7 +22,8 @@ import type { AppWindowProps } from '@/core/apps/types';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { FilePicker } from '@/components/common/FilePicker';
-import { ConfirmDialog } from '@/components/common/Modal';
+import { ConfirmDialog, Modal } from '@/components/common/Modal';
+import { DECK_TEMPLATES } from './templates';
 import { useT } from '@/core/localization/i18n';
 import { notifyError, notifySuccess } from '@/core/notifications/notificationsStore';
 import { openPrintWindow } from '@/services/print';
@@ -167,6 +168,7 @@ export function ImpressApp({ win }: AppWindowProps) {
   const [presenting, setPresenting] = useState(false);
   const [presentIndex, setPresentIndex] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   const activeIndex = deck.slides.findIndex((slide) => slide.id === activeId);
   const activeSlide = deck.slides[activeIndex] ?? deck.slides[0];
@@ -271,6 +273,14 @@ export function ImpressApp({ win }: AppWindowProps) {
     notifySuccess(t('Export JSON'), deck.title);
   };
 
+  const applyTemplate = (id: string) => {
+    const template = DECK_TEMPLATES.find((item) => item.id === id);
+    if (!template) return;
+    loadDeck(template.build(), null);
+    setTemplatesOpen(false);
+    notifySuccess(t('Template applied'), t(template.name), 'impress');
+  };
+
   const exportPdf = () => {
     const palette = THEMES[deck.theme];
     const html = deck.slides
@@ -341,6 +351,9 @@ export function ImpressApp({ win }: AppWindowProps) {
           }}
         >
           <MonitorPlay size={14} /> {t('Slide show')}
+        </button>
+        <button className="menubar__item" onClick={() => setTemplatesOpen(true)}>
+          <LayoutTemplate size={14} /> {t('Templates')}
         </button>
         <button className="menubar__item" onClick={exportJson}>
           <Download size={14} /> {t('Export JSON')}
@@ -571,6 +584,28 @@ export function ImpressApp({ win }: AppWindowProps) {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={deleteSlide}
       />
+
+      <Modal
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        title={t('Presentation templates')}
+        icon={<LayoutTemplate size={16} />}
+        wide
+      >
+        <div className="template-grid">
+          {DECK_TEMPLATES.map((template) => (
+            <button key={template.id} className="template-card" onClick={() => applyTemplate(template.id)}>
+              <div className={cn('template-card__preview', `is-${template.id}`)}>
+                <span />
+                <span />
+                <span className="is-short" />
+              </div>
+              <strong>{t(template.name)}</strong>
+              <span>{t(template.description)}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

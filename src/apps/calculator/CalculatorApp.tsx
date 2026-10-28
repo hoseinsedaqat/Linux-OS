@@ -76,7 +76,7 @@ export function CalculatorApp(_props: AppWindowProps) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return;
       if (/^[0-9.+\-*/()%]$/.test(event.key)) {
         event.preventDefault();

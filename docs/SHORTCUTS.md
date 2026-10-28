@@ -78,11 +78,22 @@
 | `pwd` | Print working directory |
 | `mkdir <name>` / `touch <name>` | Create a folder / empty file |
 | `cat <file>` | Print a file |
-| `echo <text> > <file>` | Write a file |
+| `echo <text> > <file>` / `>> <file>` | Write / append to a file |
+| `cmd1 \| cmd2` | Pipe the output of one command into the next |
+| `grep [-i] [-v] [-n] <pattern> [file]` | Filter lines (from a pipe or a file) |
+| `head [-n N]` / `tail [-n N]` | First / last N lines (default 10) |
+| `wc [-l\|-w\|-c]` | Count lines, words or characters |
+| `sort [-r]` / `uniq` | Sort lines / drop adjacent duplicates |
+| `find [path]` / `tree [path]` | List files below a folder / draw the tree |
+| `uname [-a]` / `date` / `time` / `whoami` | Simulated system identity |
 | `history` | Command history (↑ / ↓ to recall) |
 | `neofetch` | Simulated system information |
 | `open <path>` | Open a file in the desktop |
 | `clear` | Clear the screen |
+
+Pipelines and redirections are real compositions: `ls ~/Projects | grep .ts | wc -l` and
+`echo "hello" > notes.txt` both work, and the shell never performs I/O itself — it returns effects
+that the terminal applies to the virtual file system.
 
 `sudo`, package managers and anything touching the real machine are explicitly rejected with an
 explanation — the shell only sees the simulated virtual file system.
@@ -127,4 +138,28 @@ explanation — the shell only sees the simulated virtual file system.
 | `Enter` / `Escape` | Jump to the next match / close the find panel |
 | `Tab` / `Shift + Tab` | Indent or outdent the selection (multi-line aware) |
 | `↑` `↓` / `Enter` | Explorer: move the cursor / open a file |
+| `←` | Explorer: collapse the focused folder |
+| `Ctrl/Cmd + Shift + P` | Command palette — files under the current root and editor commands |
+| `↑` `↓` / `Enter` / `Escape` | Palette: move, run, close |
 | Click a tab's `×` | Close the tab (with a guard when the file has unsaved changes) |
+| Explorer root selector | Switch between `~/Projects`, `~/Notes`, `~/Documents` and `~` |
+| Markdown preview | Automatic for `.md` files in the split pane |
+
+### Games — keyboard
+
+| Input | Minesweeper | Tic-Tac-Toe |
+| --- | --- | --- |
+| Arrow keys | Move the focus ring around the board | Move between the nine cells |
+| `Enter` / `Space` | Reveal the focused cell | Place your mark |
+| `F` | Flag / unflag the focused cell | — |
+| `R` | Restart | Restart |
+
+Both boards use a roving tab index (one cell is tabbable at a time) and announce the board state
+through a polite `aria-live` region: mines left, elapsed time, the result, and whose turn it is.
+
+### Windows
+
+| Input | Action |
+| --- | --- |
+| Title-bar layout button | Open the snap-layout menu (this window / all windows) |
+| `Super + ←/→/↑/↓` | Snap the active window to a half, a corner or maximise |
