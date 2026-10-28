@@ -4,7 +4,8 @@ on:
   push:
     # `test` is this repository's default branch; `main` is listed so the same
     # workflow keeps working if the repository is later renamed/standardised.
-    branches: [main, test]
+    # NOTE: the working branch is listed temporarily so CI can be validated on it.
+    branches: [main, test, arena/44d1638d-linux-os]
   workflow_dispatch:
 
 permissions:
