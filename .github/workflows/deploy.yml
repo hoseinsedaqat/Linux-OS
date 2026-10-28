@@ -40,6 +40,18 @@ jobs:
       - name: Unit tests
         run: npm run test 2>&1 | tee /tmp/vitest.log
 
+      - name: Test failure report
+        if: failure()
+        run: |
+          if [ -f /tmp/vitest.log ]; then
+            sed -e 's/\x1b\[[0-9;]*m//g' /tmp/vitest.log \
+              | grep -A8 -E "Unhandled Error|AssertionError|FAIL " \
+              | head -45 | while IFS= read -r line; do
+                safe=$(printf '%s' "$line" | tr '\n' ' ' | cut -c1-900)
+                echo "::error title=Vitest::$safe"
+              done
+          fi
+
       - name: Build
         env:
           # Project pages are served from /<repo>/ so the base path must match.
@@ -49,21 +61,18 @@ jobs:
       - name: Disable Jekyll processing
         run: touch dist/.nojekyll
 
-      - name: Configure Pages
+      # Tries to create the Pages site on the very first run. This needs admin
+      # rights the workflow token does not have, so it must never fail the job:
+      # if it cannot be created here, the repository setting has to be flipped
+      # once under Settings -> Pages -> Source: GitHub Actions.
+      - name: Configure Pages (best effort enablement)
+        continue-on-error: true
         uses: actions/configure-pages@v5
         with:
-          # Creates the Pages site on the first run if it does not exist yet.
           enablement: true
 
-      - name: Test failure report
-        if: failure()
-        run: |
-          if [ -f /tmp/vitest.log ]; then
-            grep -E "FAIL|AssertionError|Error:|× |Unhandled" /tmp/vitest.log | head -40 | while IFS= read -r line; do
-              safe=$(printf '%s' "$line" | tr '\n' ' ' | cut -c1-900)
-              echo "::error title=Vitest::$safe"
-            done
-          fi
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
