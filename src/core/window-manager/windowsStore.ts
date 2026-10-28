@@ -29,23 +29,53 @@ interface WindowsState {
   closeAll: () => void;
 }
 
+/**
+ * Opening size for a fresh window.
+ *
+ * Applications used to open at their own small default size, which left most of
+ * the screen empty ("why is it half screen?"). A new window is now sized as at
+ * least a comfortable share of the work area, so the app you opened is the app
+ * you see. The share is a floor, not a ceiling: apps that ask for more keep it.
+ */
+const PREFERRED_SHARE_X = 0.88;
+const PREFERRED_SHARE_Y = 0.82;
+
 function computeInitialRect(appId: AppId, cascadeIndex: number): WindowRect {
   const meta = APP_META[appId];
   const metrics = currentMetrics();
   const { workArea } = metrics;
-  const width = Math.min(meta.defaultSize.width, Math.max(280, workArea.width * 0.94));
-  const height = Math.min(meta.defaultSize.height, Math.max(220, workArea.height * 0.94));
-  const offset = (cascadeIndex % 6) * 26;
+  const preferred = meta.defaultSize;
+  const width = Math.min(
+    Math.max(preferred.width, Math.round(workArea.width * PREFERRED_SHARE_X)),
+    Math.max(280, Math.round(workArea.width * 0.96)),
+  );
+  const height = Math.min(
+    Math.max(preferred.height, Math.round(workArea.height * PREFERRED_SHARE_Y)),
+    Math.max(220, Math.round(workArea.height * 0.96)),
+  );
+  // Keep the cascade offset modest so a full-size window stays centred.
+  const offset = (cascadeIndex % 5) * 22;
   const baseX = workArea.x + (workArea.width - width) / 2;
   const baseY = workArea.y + (workArea.height - height) / 2;
-  const x = Math.min(Math.max(baseX + offset - 52, workArea.x + 8), workArea.x + workArea.width - width - 8);
-  const y = Math.min(Math.max(baseY + offset - 38, workArea.y + 8), workArea.y + workArea.height - height - 8);
+  const x = Math.min(
+    Math.max(baseX + offset - 44, workArea.x + 8),
+    Math.max(workArea.x + 8, workArea.x + workArea.width - width - 8),
+  );
+  const y = Math.min(
+    Math.max(baseY + offset - 32, workArea.y + 8),
+    Math.max(workArea.y + 8, workArea.y + workArea.height - height - 8),
+  );
   return {
     x: Math.round(x),
     y: Math.round(y),
     width: Math.round(width),
     height: Math.round(height),
   };
+}
+
+/** Phones and narrow browser windows get full-screen applications. */
+function shouldStartMaximized(metrics: ReturnType<typeof currentMetrics>): boolean {
+  return metrics.isMobile || metrics.workArea.width < 1120 || metrics.workArea.height < 660;
 }
 
 export const useWindows = create<WindowsState>((set, get) => ({
@@ -86,14 +116,15 @@ export const useWindows = create<WindowsState>((set, get) => ({
     const metrics = currentMetrics();
     const prevActive = state.windows.find((win) => win.id === state.activeId);
     const rect = computeInitialRect(appId, state.windows.length);
+    const maximize = shouldStartMaximized(metrics);
     const win: WindowInstance = {
       id,
       appId,
       title: options.title ?? meta.name,
       zIndex: z,
       minimized: false,
-      maximized: metrics.isMobile,
-      ...(metrics.isMobile
+      maximized: maximize,
+      ...(maximize
         ? {
             x: metrics.workArea.x,
             y: metrics.workArea.y,
@@ -101,15 +132,17 @@ export const useWindows = create<WindowsState>((set, get) => ({
             height: metrics.workArea.height,
           }
         : rect),
-      restoreRect: metrics.isMobile ? rect : undefined,
+      restoreRect: maximize ? rect : undefined,
       payload,
       createdAt: Date.now(),
     };
 
+    // New windows go on top of the stack. The previously active window is
+    // re-appended so it renders above the others, so it must be removed from
+    // the rest first — otherwise every launch leaves a duplicate in the dock.
+    const rest = state.windows.filter((item) => item.id !== id && item.id !== prevActive?.id);
     set({
-      windows: prevActive
-        ? [...state.windows.filter((item) => item.id !== id), { ...prevActive }, win].slice(0, 40)
-        : [...state.windows, win],
+      windows: prevActive ? [...rest, prevActive, win].slice(-40) : [...rest, win].slice(-40),
       activeId: id,
       nextZ: z,
     });

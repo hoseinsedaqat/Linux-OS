@@ -18,6 +18,14 @@ const STEPS = [
   'Starting desktop services…',
 ];
 
+/** Hardware report shown like a firmware POST table (all values are simulated). */
+const SPECS = [
+  { label: 'CPU', value: 'NOVA Virtual Core · 2 threads' },
+  { label: 'Memory', value: '4096 MB · browser heap' },
+  { label: 'Display', value: 'Virtual framebuffer · CSS compositor' },
+  { label: 'Storage', value: 'IndexedDB · /home/demo' },
+];
+
 export function BootScreen({ onComplete, quick = false }: BootScreenProps) {
   const t = useT();
   const reduceMotion = useSettings((state) => state.reduceMotion);
@@ -79,9 +87,28 @@ export function BootScreen({ onComplete, quick = false }: BootScreenProps) {
 
   return (
     <div className="boot" onPointerDown={finish} role="status" aria-live="polite">
+      <div className="boot__aurora" aria-hidden />
+      <div className="boot__scanlines" aria-hidden />
+
       <div className="boot__post" aria-hidden>
         <span>NOVA Firmware 1.0 — Web Virtual Machine</span>
-        <span>4096 MB RAM · virtual display · simulated hardware</span>
+        <span>
+          4096 MB RAM · virtual display · simulated hardware
+          <span className="boot__cursor" />
+        </span>
+      </div>
+
+      <div className="boot__spec" aria-hidden>
+        {SPECS.map((spec, index) => (
+          <div
+            className="boot__spec-row"
+            key={spec.label}
+            style={{ animationDelay: `${0.25 + index * 0.18}s` }}
+          >
+            <span className="boot__spec-label">{spec.label}</span>
+            <span className="boot__spec-value">{spec.value}</span>
+          </div>
+        ))}
       </div>
 
       <motion.div
@@ -109,8 +136,11 @@ export function BootScreen({ onComplete, quick = false }: BootScreenProps) {
         <div className="boot__tagline">{t('Web Desktop Simulator')}</div>
       </motion.div>
 
-      <div className="boot__progress" aria-hidden="true">
-        <div className="boot__progress-fill" style={{ width: `${progress}%` }} />
+      <div className="boot__meter">
+        <div className="boot__progress" aria-hidden="true">
+          <div className="boot__progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+        <span className="boot__percent">{progress}%</span>
       </div>
 
       <div className="boot__status">
@@ -120,6 +150,20 @@ export function BootScreen({ onComplete, quick = false }: BootScreenProps) {
           <i />
           <i />
         </span>
+      </div>
+
+      {/* systemd-style service checklist */}
+      <div className="boot__checks" aria-hidden>
+        {STEPS.map((step, index) => (
+          <div
+            className={`boot__check${index < stepIndex ? ' is-done' : ''}${index === stepIndex ? ' is-active' : ''}`}
+            key={step}
+            style={{ animationDelay: `${0.15 + index * 0.1}s` }}
+          >
+            <span className="boot__check-icon">{index < stepIndex ? '✓' : index === stepIndex ? '›' : '·'}</span>
+            <span className="boot__check-text">{t(step)}</span>
+          </div>
+        ))}
       </div>
 
       <div className="boot__log">

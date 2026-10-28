@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import App from '@/app/App';
 import { Desktop } from '@/components/desktop/Desktop';
 import { useWindows } from '@/core/window-manager/windowsStore';
+import { currentMetrics } from '@/core/window-manager/metrics';
 import { APP_COMPONENTS } from '@/core/apps/registry';
 import { APP_META } from '@/core/apps/appMeta';
 import type { AppId } from '@/types';
@@ -91,4 +92,30 @@ describe('every registered app renders', () => {
       unmount();
     });
   }
+});
+
+describe('window manager', () => {
+  it('never duplicates the previously active window when launching again', () => {
+    useWindows.setState({ windows: [], activeId: null, nextZ: 10 });
+    const first = useWindows.getState().openApp('files');
+    useWindows.getState().openApp('settings');
+    useWindows.getState().openApp('terminal');
+    const ids = useWindows.getState().windows.map((win) => win.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toHaveLength(3);
+    expect(ids).toContain(first);
+    expect(useWindows.getState().activeId).toBe(ids[ids.length - 1]);
+  });
+
+  it('opens windows at almost the full work area instead of half a screen', () => {
+    useWindows.setState({ windows: [], activeId: null, nextZ: 10 });
+    const id = useWindows.getState().openApp('calculator');
+    const win = useWindows.getState().windows.find((item) => item.id === id);
+    expect(win).toBeTruthy();
+    const workArea = currentMetrics().workArea;
+    expect(win!.width).toBeGreaterThan(workArea.width * 0.8);
+    expect(win!.height).toBeGreaterThan(workArea.height * 0.75);
+    expect(win!.x + win!.width).toBeLessThanOrEqual(workArea.width);
+    expect(win!.y + win!.height).toBeLessThanOrEqual(workArea.height);
+  });
 });

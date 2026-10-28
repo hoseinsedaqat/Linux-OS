@@ -43,14 +43,23 @@ describe('desktop icons', () => {
     }
   });
 
-  it('lays icons out in columns that grow to the right', () => {
+  it('stacks icons in columns that grow to the right', () => {
     // jsdom does not evaluate stylesheets, so guard the layout contract directly.
     const css = readFileSync('src/styles/shell.css', 'utf8');
-    expect(css).toMatch(/\.desktop__icons\s*\{[^}]*grid-auto-flow:\s*column/);
-    expect(css).toMatch(/\.desktop__icons\s*\{[^}]*overflow-y:\s*auto/);
+    expect(css).toMatch(/\.desktop__icons\s*\{[^}]*flex-direction:\s*column[^}]*flex-wrap:\s*wrap/);
+    const iconRule = /\.desktop-icon\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(iconRule).toContain('width: 94px');
+    expect(iconRule).toContain('height: 100px');
     // The icon surface needs a real height: a flex canvas gives it one.
     expect(css).toMatch(/\.desktop__canvas\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/);
     expect(css).toMatch(/\.desktop__surface\s*\{[^}]*flex:\s*1/);
+  });
+
+  it('never covers the desktop with a full-screen loading scrim', () => {
+    const css = readFileSync('src/styles/apps.css', 'utf8');
+    const block = /\.desktop__loading\s*\{([^}]*)\}/.exec(css)?.[1] ?? '';
+    expect(block).not.toMatch(/inset:\s*0/);
+    expect(block).toContain('border-radius: 999px');
   });
 
   it('adds an app shortcut from the desktop context menu', async () => {
@@ -156,5 +165,58 @@ describe('volume and brightness controls', () => {
     expect((document.querySelector('.osd') as HTMLElement).dataset.kind).toBe('brightness');
 
     useOsd.getState().hide();
+  });
+});
+
+describe('shell layout contracts (regression guards)', () => {
+  const shell = readFileSync('src/styles/shell.css', 'utf8');
+  const apps = readFileSync('src/styles/apps.css', 'utf8');
+
+  it('keeps the application menu above its click-catcher backdrop', () => {
+    // The full-screen backdrop once sat above the menu and swallowed every
+    // hover and click, which made the power buttons unreachable.
+    const source = readFileSync('src/components/start-menu/AppMenu.tsx', 'utf8');
+    const backdropZ = Number(/zIndex:\s*(\d+)/.exec(source)?.[1] ?? 0);
+    const menuZ = Number(/z-index:\s*(\d+)/.exec(/\.appmenu\s*\{([^}]*)\}/.exec(shell)?.[1] ?? '')?.[1] ?? 0);
+    expect(backdropZ).toBeLessThan(menuZ);
+  });
+
+  it('clips quick-settings tile labels inside the tile', () => {
+    const block = /\.qs__tile-text\s*\{([^}]*)\}/.exec(shell)?.[1] ?? '';
+    expect(block).toContain('display: flex');
+    expect(block).toContain('min-width: 0');
+    expect(block).toContain('overflow: hidden');
+    const sub = /\.qs__tile-sub\s*\{([^}]*)\}/.exec(shell)?.[1] ?? '';
+    expect(sub).toContain('text-overflow: ellipsis');
+  });
+
+  it('makes the app root fill the window body', () => {
+    const block = /\.window__body > \*\s*\{([^}]*)\}/.exec(shell)?.[1] ?? '';
+    expect(block).toContain('flex: 1 1 auto');
+    expect(block).toContain('min-width: 0');
+  });
+
+  it('keeps panel window titles on a single ellipsised line', () => {
+    const block = /\.panel__window-btn > span\s*\{([^}]*)\}/.exec(shell)?.[1] ?? '';
+    expect(block).toContain('text-overflow: ellipsis');
+    expect(block).toContain('white-space: nowrap');
+  });
+
+  it('ships a poster-style boot screen', () => {
+    expect(shell).toContain('.boot__spec');
+    expect(shell).toContain('.boot__checks');
+    expect(shell).toContain('.boot__scanlines');
+    expect(shell).toContain('.boot__percent');
+  });
+
+  it('styles the intro overlay with a mark, ring and progress bar', () => {
+    expect(shell).toContain('.session-intro__ring');
+    expect(shell).toContain('.session-intro__wordmark');
+    expect(shell).toContain('.session-intro__bar');
+  });
+
+  it('keeps the calculator usable at full window width', () => {
+    const keys = /\.calculator__keys\s*\{([^}]*)\}/.exec(apps)?.[1] ?? '';
+    expect(keys).toContain('grid-template-columns: repeat(4, 1fr)');
   });
 });

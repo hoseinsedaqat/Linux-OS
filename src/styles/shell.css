@@ -197,25 +197,24 @@
 .desktop__icons {
   position: absolute;
   inset: 0;
-  padding: 16px 14px calc(var(--panel-h, 54px) + 12px) 12px;
-  display: grid;
-  /* Real desktops stack icons top→bottom and start a new column to the right. */
-  grid-auto-flow: column;
-  grid-template-rows: repeat(auto-fill, minmax(102px, max-content));
-  grid-auto-columns: 96px;
-  gap: 4px 2px;
-  align-content: start;
-  justify-content: start;
+  box-sizing: border-box;
+  padding: 16px 14px calc(var(--panel-h, 54px) + 14px) 12px;
+  /* Column-first flow, exactly like a real desktop: icons stack downwards and
+     wrap into a new column to the right (leftwards in RTL). Flex wrap is used
+     instead of a grid with `auto-fill` tracks so the layout can never collapse
+     to zero tracks on an unusual viewport. */
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  align-items: flex-start;
+  gap: 2px;
   z-index: 1;
   overflow-x: auto;
-  overflow-y: auto;
+  overflow-y: hidden;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
   overscroll-behavior: contain;
-}
-
-html[dir='rtl'] .desktop__icons {
-  direction: rtl;
 }
 
 .desktop__icons::-webkit-scrollbar {
@@ -242,8 +241,10 @@ html[dir='rtl'] .desktop__icons {
   border-radius: 12px;
   border: 1px solid transparent;
   text-align: center;
-  width: 100%;
-  height: 100%;
+  flex: 0 0 auto;
+  width: 94px;
+  height: 100px;
+  box-sizing: border-box;
   color: inherit;
   transition:
     background var(--dur-fast) var(--ease),
@@ -358,7 +359,11 @@ html[dir='rtl'] .desktop__icons {
   border-color: rgba(13, 23, 33, 0.12);
 }
 
-/* session intro */
+/* ---------------- session intro ---------------- */
+/* A short "welcome back" moment between the login card and the desktop:
+   a soft light sweep, the mark inside two counter-rotating rings, the wordmark
+   and a shimmering progress line. Everything is transform/opacity only. */
+
 .session-intro {
   position: fixed;
   inset: 0;
@@ -367,28 +372,196 @@ html[dir='rtl'] .desktop__icons {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: radial-gradient(60% 60% at 50% 45%, rgba(8, 14, 20, 0.86), rgba(3, 6, 9, 0.98));
-  backdrop-filter: blur(4px);
-  animation: session-out 1.5s var(--ease) forwards;
+  gap: 22px;
+  overflow: hidden;
+  background:
+    radial-gradient(52% 42% at 50% 46%, rgba(var(--accent-rgb), 0.14), transparent 62%),
+    radial-gradient(70% 60% at 50% 108%, rgba(70, 120, 255, 0.16), transparent 68%),
+    radial-gradient(120% 120% at 50% 50%, rgba(6, 10, 16, 0.86), rgba(2, 4, 7, 0.985));
+  backdrop-filter: blur(10px) saturate(120%);
+  animation: session-out 1.7s var(--ease) forwards;
   pointer-events: none;
 }
 
+/* diagonal light sweep */
+.session-intro::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(104deg, transparent 38%, rgba(255, 255, 255, 0.075) 48%, rgba(255, 255, 255, 0.015) 54%, transparent 62%);
+  animation: intro-sweep 1.9s var(--ease) forwards;
+}
+
+/* faint grid so the backdrop reads as "system initialising" */
+.session-intro::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(58% 58% at 50% 50%, #000 25%, transparent 78%);
+  -webkit-mask-image: radial-gradient(58% 58% at 50% 50%, #000 25%, transparent 78%);
+  animation: intro-fade-in 0.9s var(--ease) both;
+}
+
+.session-intro__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 168px;
+  height: 168px;
+  animation: intro-mark 1.1s var(--ease) both;
+}
+
+.session-intro__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-top-color: rgba(var(--accent-rgb), 0.95);
+  box-shadow: 0 0 30px -6px rgba(var(--accent-rgb), 0.45);
+  animation: nova-spin 2.6s linear infinite;
+}
+
+.session-intro__ring--1 {
+  width: 132px;
+  height: 132px;
+}
+
+.session-intro__ring--2 {
+  width: 164px;
+  height: 164px;
+  border-color: rgba(255, 255, 255, 0.06);
+  border-bottom-color: rgba(120, 190, 255, 0.7);
+  box-shadow: none;
+  animation-duration: 4.2s;
+  animation-direction: reverse;
+}
+
+.session-intro__mark {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 26px;
+  background:
+    linear-gradient(155deg, rgba(var(--accent-rgb), 0.3), rgba(120, 170, 255, 0.16)),
+    rgba(8, 13, 20, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 20px 50px -20px rgba(var(--accent-rgb), 0.7),
+    0 0 90px -30px rgba(var(--accent-rgb), 0.9);
+  animation: intro-breathe 2.4s var(--ease-in-out) infinite;
+}
+
 .session-intro__logo {
-  animation: intro-mark 1.3s var(--ease);
+  display: grid;
+  place-items: center;
 }
 
 .session-intro__text {
-  font-size: 13px;
-  letter-spacing: 0.24em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  animation: intro-mark 1.3s 0.12s var(--ease) both;
+}
+
+.session-intro__wordmark {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.34em;
   text-transform: uppercase;
-  color: #9fb3c6;
-  animation: intro-mark 1.6s var(--ease);
+  color: #eef4fb;
+  padding-inline-start: 0.34em;
+}
+
+.session-intro__wordmark span {
+  font-weight: 300;
+  color: rgba(233, 241, 250, 0.55);
+}
+
+.session-intro__caption {
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(190, 208, 226, 0.55);
+}
+
+.session-intro__bar {
+  width: 176px;
+  height: 3px;
+  margin-top: 4px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  animation: intro-mark 1.3s 0.2s var(--ease) both;
+}
+
+.session-intro__bar span {
+  display: block;
+  height: 100%;
+  width: 45%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 1), rgba(150, 210, 255, 0.9), transparent);
+  animation: intro-bar 1.5s var(--ease) infinite;
+}
+
+@keyframes intro-sweep {
+  from {
+    transform: translate3d(-26%, -8%, 0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(26%, 8%, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes intro-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes intro-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.22) inset,
+      0 20px 50px -20px rgba(var(--accent-rgb), 0.6),
+      0 0 70px -28px rgba(var(--accent-rgb), 0.75);
+  }
+  50% {
+    transform: scale(1.035);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.26) inset,
+      0 24px 60px -18px rgba(var(--accent-rgb), 0.75),
+      0 0 100px -26px rgba(var(--accent-rgb), 1);
+  }
+}
+
+@keyframes intro-bar {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
 }
 
 @keyframes session-out {
   0%,
-  55% {
+  58% {
     opacity: 1;
   }
   100% {
@@ -566,6 +739,15 @@ html[dir='rtl'] .desktop__icons {
   display: flex;
   overflow: hidden;
   background: var(--window-bg);
+}
+
+/* The application root must always claim the whole window. Without this an app
+   whose content is narrower than the window (e.g. the calculator) collapses to
+   a small column on the left of a large window. */
+.window__body > * {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 .window__resize {
@@ -899,6 +1081,16 @@ html[dir='rtl'] .desktop__icons {
   border: 1px solid transparent;
   position: relative;
   flex: none;
+  overflow: hidden;
+}
+
+/* Long window titles must stay on one line inside the panel, never wrap and
+   spill out of the bar. */
+.panel__window-btn > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .panel__window-btn:hover {
@@ -1134,7 +1326,14 @@ html[dir='rtl'] .desktop__icons {
 }
 
 .qs__tile-text {
+  /* A flex column, not an inline span: an inline child cannot clip, which is
+     why "Connected — simulated" used to spill out of the tile. */
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .qs__tile-title {
@@ -1144,14 +1343,18 @@ html[dir='rtl'] .desktop__icons {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .qs__tile-sub {
-  font-size: 9.5px;
+  display: block;
+  font-size: 10px;
   color: var(--text-3);
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .qs__slider {
@@ -1470,12 +1673,20 @@ html[dir='rtl'] .desktop__icons {
 }
 
 .appmenu__section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-3);
   padding: 2px 4px 7px;
+}
+
+.appmenu__section-title .tiny {
+  letter-spacing: 0.04em;
+  opacity: 0.75;
 }
 
 .appmenu__grid {
@@ -1628,12 +1839,115 @@ html[dir='rtl'] .desktop__icons {
   justify-content: center;
   gap: 16px;
   background:
-    radial-gradient(52% 46% at 50% 34%, rgba(28, 74, 84, 0.55), transparent 72%),
-    radial-gradient(40% 40% at 76% 74%, rgba(58, 62, 150, 0.22), transparent 74%),
+    radial-gradient(46% 40% at 50% 40%, rgba(var(--accent-rgb), 0.16), transparent 70%),
+    radial-gradient(52% 46% at 50% 22%, rgba(28, 74, 84, 0.5), transparent 74%),
+    radial-gradient(40% 40% at 80% 84%, rgba(58, 62, 150, 0.28), transparent 74%),
     linear-gradient(180deg, #05080d, #010305);
   color: var(--text-1);
   overflow: hidden;
   cursor: pointer;
+}
+
+/* slow drifting aurora behind the mark */
+.boot__aurora {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(30% 26% at 30% 42%, rgba(var(--accent-rgb), 0.28), transparent 68%),
+    radial-gradient(26% 24% at 72% 58%, rgba(90, 140, 255, 0.26), transparent 70%);
+  filter: blur(18px);
+  opacity: 0.55;
+  animation: boot-drift 16s var(--ease-in-out) infinite alternate;
+  pointer-events: none;
+}
+
+/* CRT scanlines — cheap, transform-free */
+.boot__scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.028) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  pointer-events: none;
+  mask-image: radial-gradient(78% 78% at 50% 50%, #000 45%, transparent 100%);
+  -webkit-mask-image: radial-gradient(78% 78% at 50% 50%, #000 45%, transparent 100%);
+}
+
+@keyframes boot-drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+
+/* firmware POST table in the top-left corner */
+.boot__spec {
+  position: absolute;
+  top: 68px;
+  inset-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.boot__spec-row {
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  animation: boot-line-in 0.5s var(--ease) forwards;
+}
+
+.boot__spec-label {
+  min-width: 58px;
+  color: rgba(var(--accent-rgb), 0.75);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 9px;
+}
+
+.boot__spec-value {
+  color: rgba(184, 206, 222, 0.5);
+}
+
+@keyframes boot-line-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.boot__cursor {
+  display: inline-block;
+  width: 6px;
+  height: 10px;
+  margin-inline-start: 5px;
+  vertical-align: -1px;
+  background: rgba(var(--accent-rgb), 0.7);
+  animation: boot-blink 1.1s steps(1, end) infinite;
+}
+
+@keyframes boot-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .boot__logo {
@@ -1708,12 +2022,27 @@ html[dir='rtl'] .desktop__icons {
   margin-top: 5px;
 }
 
+.boot__meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .boot__progress {
-  width: 190px;
-  height: 3px;
+  width: 210px;
+  height: 4px;
   border-radius: 99px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  box-shadow: 0 0 18px -8px rgba(var(--accent-rgb), 0.9);
+}
+
+.boot__percent {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(190, 215, 230, 0.55);
+  min-width: 30px;
 }
 
 .boot__progress-fill {
@@ -1753,9 +2082,55 @@ html[dir='rtl'] .desktop__icons {
   animation-delay: 0.36s;
 }
 
+/* service checklist, bottom-left */
+.boot__checks {
+  position: absolute;
+  bottom: 44px;
+  inset-inline-start: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.boot__check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(150, 172, 188, 0.35);
+  opacity: 0;
+  animation: boot-line-in 0.4s var(--ease) forwards;
+  transition: color 0.3s var(--ease);
+}
+
+.boot__check-icon {
+  width: 11px;
+  text-align: center;
+  color: rgba(var(--accent-rgb), 0.45);
+}
+
+.boot__check.is-active {
+  color: rgba(214, 232, 244, 0.85);
+}
+
+.boot__check.is-done {
+  color: rgba(150, 172, 188, 0.55);
+}
+
+.boot__check.is-done .boot__check-icon {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.7);
+}
+
 .boot__log {
-  width: min(440px, 82vw);
+  position: absolute;
+  bottom: 44px;
+  inset-inline-end: 22px;
+  width: min(330px, 40vw);
   height: 58px;
+  text-align: end;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -2163,23 +2538,61 @@ html[dir='rtl'] .login__footer .select {
 @media (max-width: 720px) {
   .appmenu {
     width: calc(100vw - 16px);
-    height: min(78vh, 620px);
+    height: min(82vh, 620px);
+  }
+
+  /* On phones the vertical category column becomes a scrollable chip strip so
+     the app grid gets the full width and labels are never truncated to
+     "All Appli…". */
+  .appmenu__body {
+    flex-direction: column;
   }
 
   .appmenu__sidebar {
-    width: 128px;
-    padding: 4px 6px 8px;
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    padding: 2px 10px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--border-1);
+    background: none;
+    scrollbar-width: none;
+    flex: none;
+  }
+
+  .appmenu__sidebar::-webkit-scrollbar {
+    display: none;
   }
 
   .appmenu__nav {
-    font-size: 10.5px;
-    height: 27px;
-    padding: 0 7px;
+    width: auto;
+    flex: 0 0 auto;
+    gap: 6px;
+    height: 28px;
+    padding: 0 11px;
+    border-radius: 99px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.045);
+    border: 1px solid var(--border-1);
+    white-space: nowrap;
+  }
+
+  .appmenu__nav .truncate {
+    max-width: none;
+    overflow: visible;
+  }
+
+  .appmenu__nav-count {
+    margin-inline-start: 2px;
+    font-size: 9px;
+    opacity: 0.7;
   }
 
   .appmenu__grid {
-    grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
-    padding: 6px 8px 10px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    padding: 10px 10px 14px;
   }
 
   .app-tile-btn__desc {
@@ -2190,11 +2603,20 @@ html[dir='rtl'] .login__footer .select {
     max-height: 72vh;
   }
 
-  .qs,
-  .notif-center {
+  /* The popover is the positioned box; the inner panels just fill it. */
+  .popover {
     width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px);
     left: 10px !important;
     right: 10px !important;
+  }
+
+  .qs,
+  .notif-center {
+    width: 100% !important;
+    max-width: 100%;
+    left: auto !important;
+    right: auto !important;
   }
 
   .panel__windows {
@@ -2291,6 +2713,12 @@ html[dir='rtl'] .login__footer .select {
   border-radius: 99px;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.55);
+}
+
+/* full-screen click catcher behind the applications menu */
+.appmenu-backdrop {
+  background: radial-gradient(60% 60% at 50% 100%, rgba(0, 0, 0, 0.34), rgba(2, 4, 8, 0.46));
+  backdrop-filter: blur(2px);
 }
 
 /* ---------------- app shortcut picker ---------------- */
@@ -2490,8 +2918,32 @@ html[dir='rtl'] .login__footer .select {
   pointer-events: none;
 }
 
-@media (max-width: 720px) {
-  .boot__post {
+@media (max-width: 900px) {
+  .boot__log {
     display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .boot__post,
+  .boot__spec {
+    display: none;
+  }
+
+  .boot__checks {
+    inset-inline: 0;
+    margin-inline: auto;
+    width: max-content;
+    max-width: 90vw;
+    bottom: 46px;
+    font-size: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boot__aurora,
+  .boot__scanlines,
+  .boot__cursor {
+    animation: none;
   }
 }

@@ -92,8 +92,8 @@ export function QuickSettings({ open, style, onClose, onLock, onShutdown, onRest
                     <Wifi size={15} />
                   </span>
                   <span className="qs__tile-text">
-                    <span className="qs__tile-title">{settings.wifi ? t('Connected — simulated') : t('Off — simulated')}</span>
-                    <span className="qs__tile-sub">{t('Wireless & Network')}</span>
+                    <span className="qs__tile-title">{t('Wi-Fi')}</span>
+                    <span className="qs__tile-sub">{settings.wifi ? t('Connected') : t('Disconnected')}</span>
                   </span>
                 </button>
                 <button
@@ -104,8 +104,8 @@ export function QuickSettings({ open, style, onClose, onLock, onShutdown, onRest
                     <Bluetooth size={15} />
                   </span>
                   <span className="qs__tile-text">
-                    <span className="qs__tile-title">{settings.bluetooth ? t('On — simulated') : t('Off — simulated')}</span>
-                    <span className="qs__tile-sub">Bluetooth</span>
+                    <span className="qs__tile-title">{t('Bluetooth')}</span>
+                    <span className="qs__tile-sub">{settings.bluetooth ? t('On') : t('Off')}</span>
                   </span>
                 </button>
                 <button
@@ -129,7 +129,7 @@ export function QuickSettings({ open, style, onClose, onLock, onShutdown, onRest
                   </span>
                   <span className="qs__tile-text">
                     <span className="qs__tile-title">{t('Do Not Disturb')}</span>
-                    <span className="qs__tile-sub">{settings.dnd ? t('On — simulated') : t('Off — simulated')}</span>
+                    <span className="qs__tile-sub">{settings.dnd ? t('On') : t('Off')}</span>
                   </span>
                 </button>
               </div>
@@ -164,8 +164,8 @@ export function QuickSettings({ open, style, onClose, onLock, onShutdown, onRest
                     <BatteryFull size={15} />
                   </span>
                   <span className="qs__tile-text">
-                    <span className="qs__tile-title">87% · {t('Battery')}</span>
-                    <span className="qs__tile-sub">{t('Simulated')}</span>
+                    <span className="qs__tile-title">{t('Battery')}</span>
+                    <span className="qs__tile-sub">87% · {t('Simulated')}</span>
                   </span>
                 </button>
               </div>

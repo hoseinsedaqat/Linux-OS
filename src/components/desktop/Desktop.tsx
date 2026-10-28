@@ -497,25 +497,41 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.45 }}
             >
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 1.15, opacity: 0 }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                className="session-intro__logo"
-              >
-                <NovaLogo size={96} />
-              </motion.div>
+              <div className="session-intro__stage">
+                <span className="session-intro__ring session-intro__ring--1" aria-hidden />
+                <span className="session-intro__ring session-intro__ring--2" aria-hidden />
+                <motion.div
+                  className="session-intro__mark"
+                  initial={{ scale: 0.82, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <span className="session-intro__logo">
+                    <NovaLogo size={56} />
+                  </span>
+                </motion.div>
+              </div>
+
+              <div className="session-intro__text">
+                <div className="session-intro__wordmark">
+                  NOVA <span>LINUX</span>
+                </div>
+                <div className="session-intro__caption">{t('Welcome back, Demo User')}</div>
+              </div>
+
+              <div className="session-intro__bar" aria-hidden>
+                <span />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
 
         {!ready && (
-          <div className="desktop__loading">
+          <div className="desktop__loading" role="status" aria-live="polite">
             <span className="poweroff__spinner" />
-            <span>{t('Loading…')}</span>
+            <span className="desktop__loading-label">{t('Preparing your workspace…')}</span>
           </div>
         )}
       </div>

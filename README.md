@@ -42,9 +42,9 @@ window chrome, icons) — not a screenshot. Open the live demo for the real thin
 
 | Screen | What it is |
 | --- | --- |
-| Boot splash | Animated firmware-style boot with a progress bar, log lines and a **Skip** control. |
+| Boot splash | Firmware-style POST table (CPU/memory/display/storage), drifting aurora, CRT scanlines, a live service checklist, percentage meter, log lines and a **Skip** control. |
 | Login | Large clock + date, wallpaper, avatar, password field with reveal toggle and a Caps-Lock indicator, language & keyboard layout selectors and a power menu. Demo mode: **any password works and nothing is stored**. |
-| Desktop | Wallpaper, desktop icons, panel, Applications menu, clock/calendar, notification tray, Quick Settings, window manager, session intro animation. |
+| Desktop | Wallpaper, column-flowing desktop icons, panel, Applications menu, clock/calendar, notification tray, Quick Settings, window manager, and a cinematic session intro (rings, wordmark, sweep). Apps open at ~100% of the work area. |
 | Lock screen | Same visual language as login, returns you to the running session without losing windows. |
 | Power states | Shutting down / restarting / powered off, with a "Power on" action. |
 
