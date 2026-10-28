@@ -2077,6 +2077,27 @@ html[dir='rtl'] .select--compact {
   color: #5f7a8c;
 }
 
+/* The shell is a singleton window, so an explicit way to get a second one. */
+.terminal__new {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #7d94a6;
+  font-size: calc(10px * var(--font-scale));
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.terminal__new:hover {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  color: var(--accent);
+}
+
 /* ---------------- Calculator ---------------- */
 
 .calculator {

@@ -109,6 +109,13 @@ export const APP_META: Record<AppId, AppDefinition> = {
     color: '#59636e',
     defaultSize: { width: 760, height: 480 },
     minSize: { width: 380, height: 260 },
+    /**
+     * A stray launch (a shortcut, the dock, a menu that is still animating out)
+     * must focus the shell you are typing in instead of stacking a second window
+     * on top of it. Applications menu → “Open in new window” still asks for
+     * `forceNew`, so deliberate extra terminals keep working.
+     */
+    singleton: true,
     installed: true,
   },
   calculator: {

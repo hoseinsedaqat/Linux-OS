@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 242 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
+npm run test        # Vitest: 249 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -157,7 +157,9 @@ dismisses either surface if one appears anyway, so the helper stays honest.
   redirection effects, `grep`/`head`/`wc`/`sort`/`uniq`, `cd`, `rm -r`, unknown commands), the
   Markdown parser (blocks, inline tokens, plain text, slugs, malformed input), local usage counters,
   Writer/Impress templates and the four handbooks the Documentation app ships.
-- `tests/round4-ui.test.tsx` (14) — Code's position on the main screen (second desktop icon, first
+- `tests/round4-ui.test.tsx` (21) — the terminal never opens a second window when you press Enter
+  (input guards, singleton window, `forceNew`/footer escape hatch), launch buttons release focus,
+  Code's position on the main screen (second desktop icon, first
   eight dock favourites, opens on double-click, and the v2→v4 launcher migration that promotes it
   without dropping icons), session restore through a real `Desktop` render (saved windows come
   back, restore-off stays empty, the live layer is written back), the snap-layout menu (opens from the
@@ -193,3 +195,13 @@ dismisses either surface if one appears anyway, so the helper stays honest.
     index jumps, search lists matches with their document, and the text matches `README.md` in the repo.
 72. Settings → About shows launch counters ordered by use, *Clear counters* empties them, and no
     network request is made when the desktop starts (check the Network panel).
+
+### Terminal regression (round 4.1)
+
+Pressing Enter in the prompt must run the command and nothing else. The suite now asserts that:
+
+- `openApp('terminal')` twice keeps **one** window with the same id and focuses it,
+- `forceNew` and the status-bar *New window* button still create a deliberate second shell,
+- `Enter` on the prompt calls `preventDefault()` and never changes the window count,
+- the dock button and a desktop icon release focus after launching, so a later `Enter` reaches the
+  app instead of "pressing" the launch button again.

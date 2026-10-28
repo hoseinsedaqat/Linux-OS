@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppWindowProps } from '@/core/apps/types';
+import { Plus } from 'lucide-react';
+import { useWindows } from '@/core/window-manager/windowsStore';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { useSettings } from '@/core/themes/settingsStore';
 import { useT } from '@/core/localization/i18n';
@@ -19,8 +21,9 @@ const WELCOME = [
   'This shell is a simulator and cannot access your real computer.',
 ];
 
-export function TerminalApp(_props: AppWindowProps) {
+export function TerminalApp({ win }: AppWindowProps) {
   const t = useT();
+  const isActive = useWindows((state) => state.activeId === win.id);
   const language = useSettings((state) => state.language);
   const [lines, setLines] = useState<Line[]>(
     WELCOME.map((text) => ({ id: uid('l'), kind: 'muted' as const, text: t(text) })),
@@ -36,9 +39,16 @@ export function TerminalApp(_props: AppWindowProps) {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [lines]);
 
+  /**
+   * The prompt owns the keyboard. Focus it when the window mounts *and* every
+   * time this window becomes the active one, so a click on the title bar or a
+   * launch from the dock always leaves you typing into the shell rather than on
+   * whatever button started the launch.
+   */
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (!isActive) return;
+    if (document.activeElement !== inputRef.current) inputRef.current?.focus();
+  }, [isActive]);
 
   const prompt = `demo@nova:${cwd === HOME_PATH ? '~' : cwd.replace(HOME_PATH, '~')}$`;
 
@@ -136,6 +146,10 @@ export function TerminalApp(_props: AppWindowProps) {
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
+                // Keep the key local: nothing outside the shell should react to
+                // Enter while you are typing a command.
+                event.preventDefault();
+                event.stopPropagation();
                 run(input);
                 setInput('');
               } else if (event.key === 'ArrowUp') {
@@ -166,6 +180,14 @@ export function TerminalApp(_props: AppWindowProps) {
       <footer className="app__status">
         <span className="mono tiny">{t('Simulated')} · nova-sh</span>
         <span className="faint mono tiny">{normalizePath(cwd)}</span>
+        <button
+          type="button"
+          className="terminal__new"
+          title={t('Open another terminal window')}
+          onClick={() => useWindows.getState().openApp('terminal', undefined, { forceNew: true })}
+        >
+          <Plus size={12} /> {t('New window')}
+        </button>
       </footer>
     </div>
   );

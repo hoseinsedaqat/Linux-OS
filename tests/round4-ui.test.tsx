@@ -271,3 +271,139 @@ describe('Code is reachable from the main screen', () => {
     expect(migrated.favorites).toEqual(['files']);
   });
 });
+
+describe('typing in an app never triggers desktop shortcuts', () => {
+  it('pressing Enter in the terminal runs the command instead of opening another terminal', async () => {
+    desktop();
+    await waitFor(() => expect(document.querySelector('.desktop-icon[aria-label="Terminal"]')).toBeTruthy());
+
+    // Double-clicking the icon also selects it — the state that used to make the
+    // desktop canvas treat every later Enter as "open the selected icon".
+    fireEvent.click(document.querySelector('.desktop-icon[aria-label="Terminal"]') as HTMLElement);
+    fireEvent.doubleClick(document.querySelector('.desktop-icon[aria-label="Terminal"]') as HTMLElement);
+
+    const input = await waitFor(() => {
+      const node = document.querySelector('.terminal__input') as HTMLInputElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+
+    expect(useWindows.getState().windows.filter((win) => win.appId === 'terminal')).toHaveLength(1);
+
+    fireEvent.change(input, { target: { value: 'ls' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // Still exactly one terminal window, and the command actually ran.
+    expect(useWindows.getState().windows.filter((win) => win.appId === 'terminal')).toHaveLength(1);
+    expect(useWindows.getState().windows).toHaveLength(1);
+    const screen = document.querySelector('.terminal__screen')?.textContent ?? '';
+    expect(screen).toContain('demo@nova:~$ ls');
+    expect(screen).toContain('Desktop');
+    expect(input.value).toBe('');
+  });
+
+  it('Delete and F2 inside a window do not act on the selected desktop icon', async () => {
+    desktop();
+    await waitFor(() => expect(document.querySelector('.desktop-icon[aria-label="Code"]')).toBeTruthy());
+    fireEvent.click(document.querySelector('.desktop-icon[aria-label="Code"]') as HTMLElement);
+    useWindows.getState().openApp('notes');
+
+    const notesArea = await waitFor(() => {
+      const node = document.querySelector('.notes, .notes-app, [data-app="notes"]') as HTMLElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+
+    fireEvent.keyDown(notesArea, { key: 'Delete' });
+    fireEvent.keyDown(notesArea, { key: 'F2' });
+
+    // No rename dialog appeared and the Code icon is still on the desktop.
+    expect(document.querySelector('.modal-scrim')).toBeNull();
+    const labels = Array.from(document.querySelectorAll('.desktop__icon-label, .desktop-icon__label')).map(
+      (node) => node.textContent,
+    );
+    expect(labels).toContain('Code');
+  });
+});
+
+describe('terminal window identity', () => {
+  it('opening the terminal twice keeps one window and focuses it', () => {
+    desktop();
+    const first = useWindows.getState().openApp('terminal');
+    const second = useWindows.getState().openApp('terminal');
+
+    expect(second).toBe(first);
+    expect(useWindows.getState().windows.filter((win) => win.appId === 'terminal')).toHaveLength(1);
+    expect(useWindows.getState().activeId).toBe(first);
+  });
+
+  it('still allows a deliberate second shell through forceNew or the footer button', async () => {
+    desktop();
+    useWindows.getState().openApp('terminal');
+    const explicit = useWindows.getState().openApp('terminal', undefined, { forceNew: true });
+    expect(useWindows.getState().windows.filter((win) => win.appId === 'terminal')).toHaveLength(2);
+    expect(explicit).not.toBe(useWindows.getState().windows[0].id);
+
+    // The footer offers the same thing without hidden menus.
+    useWindows.setState({ windows: [], activeId: null, nextZ: 10, workspace: 1 });
+    useWindows.getState().openApp('terminal');
+    const button = await waitFor(() => {
+      const node = document.querySelector('.terminal__new') as HTMLElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.click(button);
+    await waitFor(() =>
+      expect(useWindows.getState().windows.filter((win) => win.appId === 'terminal')).toHaveLength(2),
+    );
+  });
+
+  it('the prompt swallows Enter so nothing outside the shell reacts to it', async () => {
+    desktop();
+    useWindows.getState().openApp('terminal');
+    const input = await waitFor(() => {
+      const node = document.querySelector('.terminal__input') as HTMLInputElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+
+    const before = useWindows.getState().windows.length;
+    const notCancelled = fireEvent.keyDown(input, { key: 'Enter' });
+    expect(notCancelled).toBe(false); // preventDefault was called
+    expect(useWindows.getState().windows).toHaveLength(before);
+  });
+});
+
+describe('launch buttons hand the keyboard to the window', () => {
+  it('a dock launch is not left focused, so Enter cannot relaunch it', async () => {
+    desktop();
+    const button = await waitFor(() => {
+      const node = Array.from(document.querySelectorAll('.panel__button')).find(
+        (item) => item.getAttribute('title') === 'Files',
+      ) as HTMLElement | undefined;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+
+    button.focus();
+    expect(document.activeElement).toBe(button);
+    fireEvent.click(button);
+
+    expect(useWindows.getState().windows.filter((win) => win.appId === 'files')).toHaveLength(1);
+    expect(document.activeElement).not.toBe(button);
+  });
+
+  it('double-clicking a desktop icon releases the icon', async () => {
+    desktop();
+    const icon = await waitFor(() => {
+      const node = document.querySelector('.desktop-icon[aria-label="Code"]') as HTMLElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+
+    icon.focus();
+    fireEvent.doubleClick(icon);
+    expect(document.activeElement).not.toBe(icon);
+    expect(useWindows.getState().windows.some((win) => win.appId === 'code')).toBe(true);
+  });
+});

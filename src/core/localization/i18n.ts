@@ -910,6 +910,8 @@ const fa: Record<string, string> = {
   'Profile reset': 'پروفایل بازنشانی شد',
   'Reloading the desktop with a clean profile…': 'میزکار با پروفایل تمیز دوباره بارگذاری می‌شود…',
   Templates: 'قالب‌ها',
+  'New window': 'پنجره جدید',
+  'Open another terminal window': 'باز کردن پنجره ترمینال دیگر',
   'Document templates': 'قالب‌های سند',
   'Choose “Save as PDF”': '«ذخیره به‌عنوان PDF» را انتخاب کنید',
   'In the print dialog, pick “Save as PDF” as the destination.': 'در پنجره چاپ، مقصد را «ذخیره به‌عنوان PDF» بگذارید.',
