@@ -30,6 +30,14 @@ async function signIn(page: Page) {
     await tour.getByRole('button', { name: /skip/i }).click();
     await expect(tour).toHaveCount(0);
   }
+  // The first login also restores the Welcome window. It is a normal window that
+  // sits on top of whatever the test opens next, so close it the way a user
+  // would - with the title-bar close control.
+  const welcome = page.locator('.window', { has: page.locator('.welcome__card') });
+  if ((await welcome.count()) > 0) {
+    await welcome.first().getByRole('button', { name: 'Close' }).click();
+    await expect(welcome).toHaveCount(0);
+  }
 }
 
 async function runFromPalette(page: Page, query: string) {
@@ -98,11 +106,14 @@ test('search shows one status chip per provider and never fakes results', async 
 
   await signIn(page);
   await runFromPalette(page, 'browser');
-  const address = page.locator('.bapp__address input, input[type="text"]').first();
+  const address = page.locator('.browser__address input');
+  await expect(address).toBeVisible({ timeout: 20_000 });
   await address.fill('linux kernel');
   await address.press('Enter');
   await expect(page.locator('.bsearch__sources')).toBeVisible({ timeout: 25_000 });
-  await expect(page.locator('.bsearch__source-chip')).toHaveCount(5);
+  // One "All sources" chip plus the five real providers, never fewer: a provider
+  // that fails is still reported instead of being dropped from the rail.
+  await expect(page.locator('.bsearch__source-chip')).toHaveCount(6);
   await expect(page.locator('.bsearch__source-chip.is-down').first()).toBeVisible({ timeout: 25_000 });
 });
 
