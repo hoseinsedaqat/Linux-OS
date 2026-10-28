@@ -17,6 +17,7 @@ import { useT } from '@/core/localization/i18n';
 import { APP_META } from '@/core/apps/appMeta';
 import type { AppId } from '@/types';
 import { playSound } from '@/core/audio/sfx';
+import { useCrossTabSync } from '@/core/sync/broadcast';
 
 type Phase = 'boot' | 'login' | 'desktop' | 'locked' | 'shutdown' | 'restarting' | 'off';
 
@@ -39,6 +40,9 @@ export default function App() {
   const setStorageWarning = useUiStatus((state) => state.setStorageWarning);
   const [phase, setPhase] = useState<Phase>(initialPhase);
   const [quickBoot, setQuickBoot] = useState(false);
+
+  /* Mirror this tab with the other NOVA Linux tabs (Settings → Privacy). */
+  useCrossTabSync(Boolean(settings.crossTabSync));
 
   /* Theme + direction are driven by the settings store (localStorage). */
   useEffect(() => {
@@ -74,7 +78,7 @@ export default function App() {
     const onKey = (event: KeyboardEvent) => {
       const inDesktop = phase === 'desktop';
       const mod = event.ctrlKey || event.metaKey;
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       const typing = Boolean(target?.closest('input, textarea, select, [contenteditable="true"]'));
       if (mod && event.key.toLowerCase() === 'k') {
         event.preventDefault();

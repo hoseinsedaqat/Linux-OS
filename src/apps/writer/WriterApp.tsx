@@ -6,6 +6,7 @@ import {
   Bold,
   FileDown,
   FilePlus2,
+  LayoutTemplate,
   FolderOpen,
   Highlighter,
   Italic,
@@ -33,6 +34,7 @@ import { PromptDialog } from '@/components/common/PromptDialog';
 import { useT } from '@/core/localization/i18n';
 import { notify, notifySuccess } from '@/core/notifications/notificationsStore';
 import { openPrintWindow } from '@/services/print';
+import { WRITER_TEMPLATES } from './templates';
 import { downloadText, escapeHtml, stripExtension } from '@/utils';
 import { formatLocalizedDate } from '@/core/localization/i18n';
 import { cn } from '@/utils';
@@ -90,6 +92,7 @@ export function WriterApp({ win }: AppWindowProps) {
   const [matches, setMatches] = useState(0);
   const [preview, setPreview] = useState(false);
   const [prompt, setPrompt] = useState<null | 'table' | 'link'>(null);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const editorRef = useRef<HTMLDivElement | null>(null);
   const savedHtml = useRef(doc.html);
   const pendingHtml = useRef<string | null>(null);
@@ -286,6 +289,20 @@ export function WriterApp({ win }: AppWindowProps) {
     openPrintWindow(doc.title, doc.html, 'portrait');
   };
 
+  /** "Save as PDF" is the browser's own print dialog — honest about that. */
+  const saveAsPdf = () => {
+    if (openPrintWindow(doc.title, doc.html, 'portrait')) {
+      notifySuccess(t('Choose “Save as PDF”'), t('In the print dialog, pick “Save as PDF” as the destination.'), 'writer');
+    }
+  };
+
+  const applyTemplate = (id: string) => {
+    const template = WRITER_TEMPLATES.find((item) => item.id === id);
+    if (!template) return;
+    loadDocument({ title: template.name === 'Blank' ? 'Untitled Document' : template.name, html: template.html }, null, false);
+    setTemplatesOpen(false);
+  };
+
   return (
     <div className="app writer">
       <div className="app__menubar">
@@ -301,6 +318,9 @@ export function WriterApp({ win }: AppWindowProps) {
         <button className="menubar__item" onClick={() => setPickerOpen(true)}>
           {t('Save As')}
         </button>
+        <button className="menubar__item" onClick={() => setTemplatesOpen(true)}>
+          <LayoutTemplate size={14} /> {t('Templates')}
+        </button>
         <span className="menubar__sep" />
         <button className="menubar__item" onClick={() => setPreview(true)}>
           <Printer size={14} /> {t('Print preview')}
@@ -310,6 +330,9 @@ export function WriterApp({ win }: AppWindowProps) {
         </button>
         <button className="menubar__item" onClick={exportHtml}>
           <FileDown size={14} /> HTML
+        </button>
+        <button className="menubar__item" onClick={saveAsPdf}>
+          <FileDown size={14} /> PDF
         </button>
         <span className="menubar__spacer" />
         <button className={cn('menubar__item', findOpen && 'is-active')} onClick={() => setFindOpen((value) => !value)}>
@@ -577,6 +600,27 @@ export function WriterApp({ win }: AppWindowProps) {
         <div className="print-preview" dangerouslySetInnerHTML={{ __html: doc.html }} />
       </Modal>
 
+      <Modal
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        title={t('Document templates')}
+        icon={<LayoutTemplate size={16} />}
+        wide
+      >
+        <div className="template-grid">
+          {WRITER_TEMPLATES.map((template) => (
+            <button key={template.id} className="template-card" onClick={() => applyTemplate(template.id)}>
+              <div className={cn('template-card__preview', template.rtl && 'is-rtl')}>
+                <span />
+                <span />
+                <span className="is-short" />
+              </div>
+              <strong>{t(template.name)}</strong>
+              <span>{t(template.description)}</span>
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

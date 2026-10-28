@@ -224,3 +224,77 @@ console.log(greet({ name: 'NOVA', language: 'fa' }));
 }
 `,
 };
+
+/** Folders that can be opened as an editor root (relative to the home folder). */
+export const CODE_ROOTS: Array<{ path: string; label: string }> = [
+  { path: '~/Projects', label: 'Projects' },
+  { path: '~/Documents', label: 'Documents' },
+  { path: '~/Desktop', label: 'Desktop' },
+  { path: '~/Notes', label: 'Notes' },
+];
+
+/**
+ * Format a document: pretty-print JSON, otherwise trim trailing whitespace,
+ * collapse runs of blank lines and re-indent brace-style code by its own
+ * indentation unit. Not a full language parser — the status bar says so.
+ */
+export function formatDocument(source: string, language: Language): string {
+  const trimmed = source.replace(/\r\n?/g, '\n').replace(/\s+$/, '');
+
+  if (language === 'json') {
+    try {
+      return `${JSON.stringify(JSON.parse(trimmed), null, 2)}\n`;
+    } catch {
+      // Invalid JSON is left alone: formatting must never silently corrupt it.
+    }
+  }
+
+  const cleanLines = trimmed
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+$/, ''))
+    .filter((line, index, all) => !(line.trim() === '' && all[index - 1]?.trim() === ''));
+
+  if (language === 'md' || language === 'text' || language === 'sh') {
+    return `${cleanLines.join('\n')}\n`;
+  }
+
+  const indentUnit = (() => {
+    const match = /^( +)\S/m.exec(trimmed);
+    if (match) return match[1];
+    const tabbed = /^\t\S/m.test(trimmed);
+    return tabbed ? '\t' : '  ';
+  })();
+
+  let depth = 0;
+  const formatted = cleanLines.map((line) => {
+    const text = line.trim();
+    if (!text) return '';
+    const closesFirst = /^(\}|\]|\)|else\b|catch\b|finally\b)/.test(text);
+    if (closesFirst) depth = Math.max(0, depth - 1);
+    const result = `${indentUnit.repeat(depth)}${text}`;
+    const opens = (text.match(/[{([]/g) ?? []).length;
+    const closes = (text.match(/[}\])]/g) ?? []).length;
+    depth = Math.max(0, depth + opens - closes + (closesFirst ? 1 : 0));
+    return result;
+  });
+
+  return `${formatted.join('\n')}\n`;
+}
+
+/** Sort the selected text (or the whole document) alphabetically. */
+export function sortLines(source: string, start: number, end: number, descending = false): { value: string; start: number; end: number } {
+  const hasSelection = end > start;
+  const from = hasSelection ? source.lastIndexOf('\n', start - 1) + 1 : 0;
+  const to = hasSelection ? source.indexOf('\n', end) : -1;
+  const sliceEnd = to === -1 ? source.length : to;
+  const block = source.slice(from, sliceEnd);
+  const rows = block.split('\n');
+  const sorted = rows.slice().sort((a, b) => a.localeCompare(b));
+  if (descending) sorted.reverse();
+  const replacement = sorted.join('\n');
+  return {
+    value: source.slice(0, from) + replacement + source.slice(sliceEnd),
+    start: from,
+    end: from + replacement.length,
+  };
+}

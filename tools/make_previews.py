@@ -560,6 +560,157 @@ def scene_code():
     return "".join(svg)
 
 
+# ---------------------------------------------------------------- round 4 scene
+
+DOC_ITEMS = [
+    ("README", "what this is and is not", True),
+    ("Architecture", "stores, shell, file system", False),
+    ("Shortcuts", "every key, including games", False),
+    ("Testing", "the automated suites", False),
+]
+
+
+def docs_window(x, y, w, h):
+    body = [rect(x, y + 40, w, h - 40, SURFACE_1)]
+    # sidebar
+    body.append(rect(x, y + 40, 236, h - 40, SURFACE_2))
+    body.append(text(x + 18, y + 66, "HANDBOOKS", 8.5, TEXT_3, 700, extra='letter-spacing="1.4"'))
+    for index, (name, hint, active) in enumerate(DOC_ITEMS):
+        iy = y + 78 + index * 52
+        if active:
+            body.append(rect(x + 10, iy, 216, 44, ACCENT, rx=10, opacity=0.12))
+            body.append(rect(x + 10, iy, 216, 44, "none", rx=10, stroke=ACCENT, sw=1, opacity=0.45))
+        body.append(text(x + 22, iy + 19, name, 11, TEXT_1 if active else TEXT_2, 600))
+        body.append(text(x + 22, iy + 34, hint, 8.5, TEXT_3))
+    body.append(rect(x + 14, y + 302, 208, 1, "none", stroke=BORDER))
+    body.append(text(x + 18, y + 326, "ON THIS PAGE", 8.5, TEXT_3, 700, extra='letter-spacing="1.4"'))
+    toc = ["What this is (and is not)", "Highlights", "New in round 4", "Applications", "Testing"]
+    for index, entry in enumerate(toc):
+        body.append(text(x + 18, y + 348 + index * 20, entry, 9.5, TEXT_3))
+    # toolbar
+    body.append(text(x + 256, y + 66, "README", 13, TEXT_1, 700))
+    body.append(text(x + 256, y + 82, "Bundled with this build", 9.5, TEXT_3))
+    body.append(rect(x + w - 250, y + 55, 226, 26, SURFACE_2, rx=13, stroke=BORDER))
+    body.append(text(x + w - 238, y + 72, "⌕  Search the handbooks…", 9.5, TEXT_3))
+    body.append(rect(x + 236, y + 96, w - 236, 1, "none", stroke=BORDER_SOFT))
+    # markdown body
+    mx = x + 268
+    body.append(text(mx, y + 136, "NOVA Linux", 21, TEXT_1, 700))
+    body.append(text(mx, y + 160, "A complete Linux desktop environment that boots, runs and remembers —", 10.5, TEXT_2))
+    body.append(text(mx, y + 176, "entirely in your browser.", 10.5, TEXT_2))
+    body.append(text(mx, y + 212, "What this is (and is not)", 13.5, TEXT_1, 700))
+    body.append(rect(mx, y + 221, w - 300, 1, "none", stroke=BORDER))
+    body.append(text(mx, y + 240, "NOVA Linux is a desktop environment simulator: a web application that behaves", 10.5, TEXT_2))
+    body.append(text(mx, y + 256, "like a small, polished Linux distribution. It has a boot sequence, a login", 10.5, TEXT_2))
+    body.append(text(mx, y + 272, "screen, a window manager and a virtual file system persisted in IndexedDB.", 10.5, TEXT_2))
+    body.append(rect(mx - 10, y + 292, 4, 30, ACCENT, rx=2))
+    body.append(rect(mx - 10, y + 292, w - 290, 30, ACCENT, rx=6, opacity=0.07))
+    body.append(text(mx + 4, y + 311, "It is not a kernel, a VM or a remote desktop. Nothing is executed natively.", 10, TEXT_2))
+    body.append(text(mx, y + 352, "New in round 4", 13.5, TEXT_1, 700))
+    body.append(rect(mx, y + 361, w - 300, 1, "none", stroke=BORDER))
+    for index, line in enumerate([
+        "▸  Snap layouts and a restored window session",
+        "▸  A shell with pipes, redirection, grep, head and wc",
+        "▸  Code on the desktop, with a Markdown preview",
+    ]):
+        body.append(circle(mx + 3, y + 384 + index * 22, 2.4, ACCENT))
+        body.append(text(mx + 14, y + 388 + index * 22, line[3:], 10.5, TEXT_2))
+    body.append(text(mx, y + 476, "| Example ||", 1, TEXT_3))
+    # code block
+    body.append(rect(mx - 10, y + 474, w - 300, 76, "#080c13", rx=10, stroke=BORDER))
+    body.append(text(mx + 2, y + 496, "$ ls ~/Projects | grep .ts | wc -l", 10, "#8fe3b6", family=MONO))
+    body.append(text(mx + 2, y + 514, "3", 10, TEXT_1, family=MONO))
+    body.append(text(mx + 2, y + 532, "$ echo \"hello\" > notes.txt", 10, "#8fe3b6", family=MONO))
+    return window(x, y, w, h, "Documentation — README", "#8fe3b6", "¶", "".join(body))
+
+
+TERMINAL_LINES = [
+    ("demo@nova:~$ ", "ls ~/Projects | grep .ts | wc -l", "3"),
+    ("demo@nova:~$ ", "cat notes.md | head -n 2", "# NOVA notes\n- snap layouts, sessions, pipes"),
+    ("demo@nova:~$ ", "echo \"hello\" > notes.txt", "Wrote /home/demo/notes.txt (6 chars)"),
+    ("demo@nova:~$ ", "grep -n nova notes.md", "1:# NOVA notes"),
+]
+
+
+def terminal_window(x, y, w, h):
+    body = [rect(x, y + 40, w, h - 40, "#060a10")]
+    body.append(rect(x, y + 40, w, 28, "#0a0e16"))
+    body.append(text(x + 14, y + 59, "nova-sh", 9.5, TEXT_3, 600))
+    body.append(text(x + 74, y + 59, "simulated · no kernel", 9, TEXT_3))
+    body.append(rect(x, y + h - 22, w, 22, "#0f2a24"))
+    body.append(text(x + 14, y + h - 7, "bash · ~/", 8.5, TEXT_2))
+    row = 0
+    for prompt, command, output in TERMINAL_LINES:
+        ly = y + 96 + row * 20
+        body.append(
+            f'<text x="{x + 16}" y="{ly}" font-family="{MONO}" font-size="10.5">'
+            f'<tspan fill="{ACCENT}">{esc(prompt)}</tspan><tspan fill="{TEXT_1}">{esc(command)}</tspan></text>'
+        )
+        row += 1
+        for offset, out_line in enumerate(output.split("\n")):
+            oy = y + 96 + row * 20 - 2 + offset * 16
+            body.append(text(x + 16, oy, out_line, 10, TEXT_2, family=MONO))
+            row += 1
+        row += 0.4
+    body.append(
+        f'<text x="{x + 16}" y="{y + h - 44}" font-family="{MONO}" font-size="10.5">'
+        f'<tspan fill="{ACCENT}">demo@nova:~$ </tspan><tspan fill="{TEXT_1}">▌</tspan></text>'
+    )
+    return window(x, y, w, h, "Terminal", "#8fe3b6", "❯", "".join(body))
+
+
+def layouts_popover(x, y, w=246):
+    cells = ["left", "right", "top-left", "top-right", "bottom-left", "bottom-right"]
+    h = 226
+    out = [
+        f'<g filter="url(#shadow)">',
+        rect(x, y, w, h, "#131b28", rx=14, stroke=BORDER),
+        text(x + 12, y + 22, "SNAP LAYOUTS", 8.5, TEXT_3, 700, extra='letter-spacing="1.4"'),
+    ]
+    for index, kind in enumerate(cells):
+        cx = x + 12 + (index % 3) * 74
+        cy = y + 32 + (index // 3) * 42
+        out.append(rect(cx, cy, 66, 34, SURFACE_2, rx=6, stroke=BORDER))
+        if kind in ("left", "right"):
+            ox = cx + 6 if kind == "left" else cx + 66 - 6 - 26
+            out.append(rect(ox, cy + 5, 26, 24, ACCENT, rx=3, opacity=0.35))
+        else:
+            vert = "top" if kind.startswith("top") else "bottom"
+            hor = "left" if kind.endswith("left") else "right"
+            ox = cx + 6 if hor == "left" else cx + 66 - 6 - 26
+            oy = cy + 5 if vert == "top" else cy + 34 - 5 - 12
+            out.append(rect(ox, oy, 26, 12, ACCENT, rx=3, opacity=0.35))
+    out.append(rect(x + 10, y + 118, w - 20, 1, "none", stroke=BORDER))
+    out.append(text(x + 12, y + 138, "ALL WINDOWS", 8.5, TEXT_3, 700, extra='letter-spacing="1.4"'))
+    layouts = [("Side by side", "every window in columns", True), ("Grid", "even cells", False),
+               ("Focus + sidebar", "one large, rest stacked", False)]
+    for index, (name, hint, active) in enumerate(layouts):
+        oy = y + 146 + index * 24
+        if active:
+            out.append(rect(x + 8, oy - 2, w - 16, 22, ACCENT, rx=6, opacity=0.12))
+        out.append(text(x + 14, oy + 12, name, 10, TEXT_1, 600))
+        out.append(text(x + 108, oy + 12, hint, 8.5, TEXT_3))
+    out.append("</g>")
+    return "".join(out)
+
+
+def scene_round4():
+    svg = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" '
+        'role="img" aria-label="Documentation reader, terminal pipelines and the snap-layout menu">'
+    ]
+    svg.append(defs())
+    svg.append(rect(0, 0, W, H, "#04070c"))
+    svg.append(rect(0, 0, W, H, "url(#glow)", opacity=0.4))
+    svg.append(desktop_icons())
+    svg.append(docs_window(120, 60, 780, 700))
+    svg.append(terminal_window(628, 300, 700, 420))
+    svg.append(layouts_popover(1060, 430))
+    svg.append(panel())
+    svg.append("</svg>")
+    return "".join(svg)
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     scenes = {
@@ -567,6 +718,7 @@ def main():
         "02-search.svg": scene_search(),
         "03-games.svg": scene_games(),
         "04-responsive.svg": scene_responsive(),
+        "05-docs-and-terminal.svg": scene_round4(),
     }
     for name, content in scenes.items():
         path = os.path.join(OUT, name)

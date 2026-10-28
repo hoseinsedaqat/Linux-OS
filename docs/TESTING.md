@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 194 tests — logic, apps, shell, games, search, code, responsive, a11y
+npm run test        # Vitest: 235 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -149,3 +149,44 @@ desktop is ready (900 ms timers) and both sit on top of the windows the tests dr
 full-screen backdrop that swallows pointer events and the Welcome window covers the game board. The
 suite used to race those timers, which showed up as random 60 s click timeouts. `signIn()` still
 dismisses either surface if one appears anyway, so the helper stays honest.
+
+## Round-4 additions to the automated suites
+
+- `tests/round4.test.ts` (33) — session snapshot round-trips (including corrupt, oversized and
+  payload-filtering cases), `layoutRects()` for all five layouts, the simulated shell (quotes, pipes,
+  redirection effects, `grep`/`head`/`wc`/`sort`/`uniq`, `cd`, `rm -r`, unknown commands), the
+  Markdown parser (blocks, inline tokens, plain text, slugs, malformed input), local usage counters,
+  Writer/Impress templates and the four handbooks the Documentation app ships.
+- `tests/round4-ui.test.tsx` (7) — session restore through a real `Desktop` render (saved windows come
+  back, restore-off stays empty, the live layer is written back), the snap-layout menu (opens from the
+  title bar, snaps only the clicked window, leaves minimised windows alone, arranges columns without
+  overlap), and Code's `Ctrl+Shift+P` palette.
+
+### Round-4 manual checks
+
+61. The desktop shows **Code**; double-clicking it opens the editor (also in the Applications menu and `Ctrl+K`).
+62. Open two apps, arrange them, reload the page: the same windows come back in the same places, on the
+    same workspace, with the previously active window focused. Turn *Restore windows on reload* off,
+    reload: the desktop starts empty again.
+63. Title bar → layout button → *All windows → Grid* rearranges every open window into an even grid;
+    *Cascade* offsets them. *This window → top-right* snaps only the active one.
+64. Open a second tab of the site: opening, moving and closing a window in one tab is mirrored in the
+    other. Turn *Mirror this session across tabs* off and confirm the mirroring stops.
+65. Terminal: `ls ~/Projects | grep .ts | wc -l` prints a count; `echo "hello" > notes.txt` writes the
+    file and `cat notes.txt` shows it; `head -n 2` and `sort -r` behave; `sudo` and unknown commands
+    are rejected without side effects.
+66. Code: `Ctrl+Shift+P` opens the palette; typing a file name opens it; the command list runs
+    *Format document*, *Sort lines* and the root switcher. Opening a `.md` file shows the live preview.
+67. Minesweeper and Tic-Tac-Toe are fully playable with the keyboard only, and the board state is
+    announced (screen reader or the accessibility tree's live region) — mines left, time, turn.
+68. Writer → *Templates* inserts a letter (and a Persian RTL letter); *Save as PDF* opens the print
+    dialog and explains that the browser's destination list is the PDF step. Impress → *Templates*
+    builds a deck you can immediately edit.
+69. Drag a PNG onto the desktop: the drop overlay appears, the wallpaper changes and survives a
+    reload. Settings → Wallpapers: dim and blur sliders change the wallpaper layer only.
+70. Settings → Storage → *Reset this browser profile* shows the exact counts that will be deleted; the
+    cancel path deletes nothing and the confirm path reloads into a clean demo profile.
+71. Open the **Documentation** app: the README renders with headings, tables and code, the section
+    index jumps, search lists matches with their document, and the text matches `README.md` in the repo.
+72. Settings → About shows launch counters ordered by use, *Clear counters* empties them, and no
+    network request is made when the desktop starts (check the Network panel).

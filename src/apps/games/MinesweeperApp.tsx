@@ -22,6 +22,8 @@ export function MinesweeperApp(_props: AppWindowProps) {
   const [best, setBest] = useState<number | null>(() => gamesStore.get().minesBest[difficulty]);
   const [record, setRecord] = useState(false);
   const [tickKey, bump] = useReducer((value: number) => value + 1, 0);
+  const [focusIndex, setFocusIndex] = useState(0);
+  const cellsRef = useRef<Array<HTMLButtonElement | null>>([]);
   const timerRef = useRef<number | null>(null);
   const longPress = useRef<number | null>(null);
 
@@ -101,6 +103,8 @@ export function MinesweeperApp(_props: AppWindowProps) {
           className="mines__board"
           style={{ gridTemplateColumns: `repeat(${board.cols}, var(--mines-cell))` }}
           onContextMenu={(event) => event.preventDefault()}
+          role="group"
+          aria-label={t('Minefield, {cols} by {rows} cells', { cols: board.cols, rows: board.rows })}
         >
           {board.cells.map((cell, index) => {
             const open = cell.state === 'revealed';
@@ -108,6 +112,34 @@ export function MinesweeperApp(_props: AppWindowProps) {
             return (
               <button
                 key={index}
+                ref={(node) => {
+                  cellsRef.current[index] = node;
+                }}
+                tabIndex={index === focusIndex ? 0 : -1}
+                onFocus={() => setFocusIndex(index)}
+                onKeyDown={(event) => {
+                  const row = Math.floor(index / board.cols);
+                  const col = index % board.cols;
+                  let next = -1;
+                  if (event.key === 'ArrowLeft') next = row * board.cols + ((col - 1 + board.cols) % board.cols);
+                  else if (event.key === 'ArrowRight') next = row * board.cols + ((col + 1) % board.cols);
+                  else if (event.key === 'ArrowUp') next = ((row - 1 + board.rows) % board.rows) * board.cols + col;
+                  else if (event.key === 'ArrowDown') next = ((row + 1) % board.rows) * board.cols + col;
+                  else if (event.key === 'f' || event.key === 'F') {
+                    event.preventDefault();
+                    onFlag(index);
+                    return;
+                  } else if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onCell(index);
+                    return;
+                  }
+                  if (next >= 0) {
+                    event.preventDefault();
+                    setFocusIndex(next);
+                    cellsRef.current[next]?.focus();
+                  }
+                }}
                 className={cn(
                   'mines__cell',
                   open && 'is-open',
@@ -149,6 +181,17 @@ export function MinesweeperApp(_props: AppWindowProps) {
           })}
         </div>
 
+        <p className="sr-only" aria-live="polite">
+          {board.status === 'won'
+            ? t('Field cleared!')
+            : board.status === 'lost'
+              ? t('Boom!')
+              : t('{count} mines left, {time} elapsed. Use the arrow keys to move, Enter to reveal, F to flag.', {
+                  count: remainingMines(board),
+                  time: formatTime(seconds),
+                })}
+        </p>
+
         {board.status !== 'playing' && (
           <div className={cn('game__overlay', board.status === 'won' ? 'is-win' : 'is-lose')}>
             <div className="game__overlay-icon">
@@ -170,8 +213,8 @@ export function MinesweeperApp(_props: AppWindowProps) {
       </div>
 
       <div className="game__hint">
-        {t('Left-click to reveal · right-click to flag · click a number to chord')} · {DIFFICULTIES[difficulty].mines}{' '}
-        {t('mines')}
+        {t('Left-click to reveal · right-click to flag · click a number to chord')} ·{' '}
+        {t('Keyboard: arrows + Enter + F')} · {DIFFICULTIES[difficulty].mines} {t('mines')}
       </div>
     </div>
   );

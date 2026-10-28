@@ -32,6 +32,7 @@ const Game2048App = lazyApp(() => import('@/apps/games/Game2048App'), 'Game2048A
 const SnakeApp = lazyApp(() => import('@/apps/games/SnakeApp'), 'SnakeApp');
 const TicTacToeApp = lazyApp(() => import('@/apps/games/TicTacToeApp'), 'TicTacToeApp');
 const CodeApp = lazyApp(() => import('@/apps/code/CodeApp'), 'CodeApp');
+const DocsApp = lazyApp(() => import('@/apps/docs/DocsApp'), 'DocsApp');
 const MusicApp = lazyApp(() => import('@/apps/music/MusicApp'), 'MusicApp');
 const PhotosApp = lazyApp(() => import('@/apps/photos/PhotosApp'), 'PhotosApp');
 const WeatherApp = lazyApp(() => import('@/apps/weather/WeatherApp'), 'WeatherApp');
@@ -62,6 +63,7 @@ export const APP_COMPONENTS: Record<AppId, ComponentType<AppWindowProps>> = {
   snake: SnakeApp,
   tictactoe: TicTacToeApp,
   code: CodeApp,
+  docs: DocsApp,
   music: MusicApp,
   photos: PhotosApp,
   weather: WeatherApp,

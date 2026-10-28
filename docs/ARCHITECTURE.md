@@ -33,6 +33,7 @@ boot ──▶ login ──▶ desktop ──▶ locked
 | `useLauncher` | `core/apps/launcherStore.ts` | Installed apps, favourites, recents. |
 | `useNotifications` | `core/notifications/notificationsStore.ts` | Notification queue + read state. |
 | `useFiles` | `core/virtual-filesystem/fsStore.ts` | Virtual file system nodes and every mutation, mirrored to IndexedDB. |
+| `useUsage` | `core/analytics/usage.ts` | Local launch counters per app (LocalStorage, never transmitted). |
 
 Rules:
 
@@ -64,6 +65,15 @@ through `services/fileActions.openNode()`, which maps a node to an app via
   local (so dragging does not re-render the tree), and writes final geometry to the store.
 - `WindowManager` re-clamps every window when metrics change (panel move, resolution change,
   mobile breakpoint crossing).
+- `session.ts` holds the pure geometry layer: `LAYOUTS`, `SNAP_PRESETS` and `layoutRects(id, area, n)`
+  return the rectangles for the five multi-window layouts, so the layout menu and the tests share one
+  implementation. Snapshots (`saveSession`/`loadSession`/`clearSession`) serialise up to twelve
+  windows — app id, title, rounded rect, maximised/snapped state, workspace, minimised flag and a
+  payload filtered down to string/boolean values. A corrupt or older snapshot is ignored, never
+  applied partially.
+- `core/sync/broadcast.ts` mirrors the shell between tabs of the same origin over `BroadcastChannel`:
+  window state, session saves, theme changes, file mutations and notifications. It is
+  broadcast-only (no server), and it ignores its own messages through a per-tab id.
 
 ## 5. Virtual file system
 
@@ -92,12 +102,15 @@ JSON envelope with an explicit `version` so future migrations are possible.
 
 ## 7. Styling
 
-Four stylesheets, loaded in order:
+Six stylesheets, loaded in order:
 
 1. `tokens.css` — CSS custom properties: colours, radii, shadows, motion, layout metrics, themes.
 2. `base.css` — reset, typography, shared primitives (buttons, inputs, tables, modal, menus, toasts).
 3. `shell.css` — desktop, wallpaper, windows, panel, popovers, applications menu, boot/login.
-4. `apps.css` — per-application layouts.
+4. `apps.css` — per-application layouts (templates, usage bars, reset preview).
+5. `code.css` — the editor (explorer, palette, Markdown preview split).
+6. `docs.css` — the Markdown renderer (`.md`) and the Documentation reader; `media.css` and
+   `games.css` cover the media apps and the games grid.
 
 Conventions:
 
@@ -168,7 +181,22 @@ Code extensions are routed here by `core/apps/types.ts`: `CODE_EXTENSIONS` maps 
 .json/.css/.html/.md/.sh` to the `code` app, so opening such a file from Files or the desktop lands in
 the editor instead of the note viewer.
 
-## 13. Responsive contract (round 3)
+## 13. Round 4 modules
+
+| Module | Responsibility |
+| --- | --- |
+| `core/window-manager/session.ts` | Session snapshots + `layoutRects()` / `LAYOUTS` / `SNAP_PRESETS` (pure). |
+| `core/sync/broadcast.ts` | `startCrossTabSync`, `useCrossTabSync`, `saveSessionNow`, `broadcastNotification`, presence pings. |
+| `apps/terminal/shell.ts` | The whole simulated shell as a pure function: `tokenizeCommand`, `splitUnquoted`, `runLine(input, ctx)` → `{ lines, effects, cwd }`. Pipelines and redirection are composed there, so the terminal component only applies effects to the FS store. |
+| `core/markdown/markdown.ts` | Block + inline parser (`parseMarkdown`, `parseInline`, `markdownToText`, `slugify`). No raw HTML is ever produced. |
+| `components/common/MarkdownView.tsx` | The single renderer used by both the Documentation app and Code's preview. |
+| `core/docs/content.ts` + `apps/docs/DocsApp.tsx` | `README.md` and `docs/*.md` imported with `?raw`, rendered with a section index and search. |
+| `core/analytics/usage.ts` | `useUsage` (counts/lastUsed/totalOpens) + `usageRows()` for the About panel. |
+| `services/storageReport.ts` | `profileReport()` builds the "what will be deleted" list; `resetProfile()` performs the reset in a fixed order. |
+| `apps/writer/templates.ts`, `apps/impress/templates.ts` | Templates as data: Writer HTML bodies (with `rtl`), Impress `build(): DeckModel` factories. |
+| `utils/image.ts` | `compressImage(file)` — canvas downscale to 1920 px, used by Settings and desktop drag & drop. |
+
+## 14. Responsive contract (round 3, extended)
 
 Breakpoints are owned per stylesheet and asserted by `tests/responsive.test.ts`, so a refactor that
 drops one fails CI:
@@ -179,7 +207,8 @@ drops one fails CI:
 | `apps.css` | 860, 640 | Generic app layouts: sidebars collapse, grids reflow. |
 | `games.css` | 860, 620, 400 | One card per row, board cell `--mines-cell` 22 → 18 → 15 px. |
 | `media.css` | 860, 640 | Music/Photos/Weather panes stack. |
-| `code.css` | 760 | Explorer becomes an overlay; reduced-motion block added. |
+| `code.css` | 760 | Explorer becomes an overlay, Markdown preview stacks vertically; reduced-motion block added. |
+| `docs.css` | 760, 480 | The reader's sidebar becomes a horizontal tab strip; headings and code blocks shrink. |
 
 Rules that the test enforces: no fixed `width` above 640 px in the round-3 sheets, only
 `repeat(auto-fill, minmax(...))` for card grids, `@media (prefers-reduced-motion: reduce)` in every

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   FilePlus2,
@@ -26,6 +26,8 @@ import { wallpaperClass } from '@/core/themes/applyTheme';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { FOLDER_IDS, childrenOf } from '@/core/virtual-filesystem/fsUtils';
 import { useWindows } from '@/core/window-manager/windowsStore';
+import { clearSession, loadSession, saveSession } from '@/core/window-manager/session';
+import { saveSessionNow } from '@/core/sync/broadcast';
 import { computeMetrics, setActiveMetrics, type Metrics } from '@/core/window-manager/metrics';
 import { useLauncher } from '@/core/apps/launcherStore';
 import { useShell } from '@/core/apps/shellStore';
@@ -51,6 +53,7 @@ import { notify, notifyError } from '@/core/notifications/notificationsStore';
 import { templateFor } from '@/services/fileTemplates';
 import { openNode } from '@/services/fileActions';
 import { cn, formatBytes, fileSize } from '@/utils';
+import { compressImage } from '@/utils/image';
 
 interface DesktopProps {
   onLock: () => void;
@@ -85,6 +88,7 @@ function canvasFor(viewport: { width: number; height: number }, resolution: Sett
 export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   const t = useT();
   const settings = useSettings();
+  const set = useSettings((state) => state.set);
   const nodes = useFiles((state) => state.nodes);
   const ready = useFiles((state) => state.ready);
   const createFolder = useFiles((state) => state.createFolder);
@@ -120,7 +124,7 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
+      const target = event.target instanceof HTMLElement ? event.target : null;
       const typing = target?.closest('input, textarea, select, [contenteditable="true"]');
       if (typing) return;
       if (event.key === '?' || (event.shiftKey && event.key === '/')) {
@@ -155,6 +159,45 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     setActiveMetrics(metrics);
     return () => setActiveMetrics(null);
   }, [metrics]);
+
+  /* Restore the window layer the user left behind (Settings → Desktop & Panel). */
+  const restoreRef = useRef(false);
+  useEffect(() => {
+    if (restoreRef.current) return;
+    restoreRef.current = true;
+    if (!settings.restoreWindows) return;
+    const saved = loadSession();
+    if (!saved) return;
+    const { windows } = useWindows.getState();
+    if (windows.length > 0) return;
+    useWindows.getState().restoreSession(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.restoreWindows]);
+
+  /* Persist the window layer, debounced so a drag does not hammer storage. */
+  useEffect(() => {
+    let timer = 0;
+    const persist = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        const state = useWindows.getState();
+        if (!useSettings.getState().restoreWindows) {
+          clearSession();
+          return;
+        }
+        saveSession(state.windows, state.activeId, state.workspace);
+      }, 400);
+    };
+    const unsubscribe = useWindows.subscribe(persist);
+    const onUnload = () => saveSessionNow();
+    window.addEventListener('beforeunload', onUnload);
+    persist();
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+      window.removeEventListener('beforeunload', onUnload);
+    };
+  }, []);
 
   useEffect(() => {
     if (!introVisible) return;
@@ -398,11 +441,31 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   };
 
   const wallpaperStyle = useMemo<React.CSSProperties>(() => {
+    const base: React.CSSProperties = {};
     if (settings.wallpaper === 'custom' && settings.customWallpaper) {
-      return { backgroundImage: `url(${settings.customWallpaper})` };
+      base.backgroundImage = `url(${settings.customWallpaper})`;
     }
-    return {};
-  }, [settings.wallpaper, settings.customWallpaper]);
+    if (settings.wallpaperBlur > 0) base.filter = `blur(${settings.wallpaperBlur}px)`;
+    if (settings.wallpaperDim > 0) base.opacity = Math.max(0.2, 1 - settings.wallpaperDim / 100);
+    return base;
+  }, [settings.wallpaper, settings.customWallpaper, settings.wallpaperBlur, settings.wallpaperDim]);
+
+  /* Dropping an image anywhere on the desktop sets it as the wallpaper. */
+  const [dropActive, setDropActive] = useState(false);
+  const onDropImage = async (event: React.DragEvent) => {
+    event.preventDefault();
+    setDropActive(false);
+    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/'));
+    if (!file) return;
+    try {
+      const dataUrl = await compressImage(file);
+      set('customWallpaper', dataUrl);
+      set('wallpaper', 'custom');
+      notify(t('Wallpaper updated'), { body: `${file.name} · ${formatBytes(dataUrl.length)}`, kind: 'success' });
+    } catch {
+      notifyError(t('That image could not be used'), t('Try a JPG or PNG under 10 MB.'));
+    }
+  };
 
   const dimOpacity = Math.max(0, Math.min(0.86, (100 - settings.brightness) / 100 * 0.86));
 
@@ -430,11 +493,26 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
         }
         onPointerDown={() => setSelected(null)}
         onKeyDown={onKeyDown}
+        onDragOver={(event) => {
+          if (!event.dataTransfer.types.includes('Files')) return;
+          event.preventDefault();
+          setDropActive(true);
+        }}
+        onDragLeave={() => setDropActive(false)}
+        onDrop={(event) => void onDropImage(event)}
       >
         <div className={cn('wallpaper', wallpaperClass(settings.wallpaper))} style={wallpaperStyle}>
           <span className="wallpaper__grain" aria-hidden />
           <span className="wallpaper__vignette" aria-hidden />
         </div>
+
+        {dropActive && (
+          <div className="desktop__drop" role="presentation">
+            <ImageIcon size={26} />
+            <strong>{t('Drop an image to use it as your wallpaper')}</strong>
+            <span>{t('It is resized and stored in this browser only.')}</span>
+          </div>
+        )}
 
         {uiWarning && (
           <div className="desktop__warning">
