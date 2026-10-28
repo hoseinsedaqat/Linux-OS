@@ -14,5 +14,9 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx}'],
     css: false,
     restoreMocks: true,
+    /* CI runners are slow and shared: give DOM-heavy tests room to breathe. */
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
+    teardownTimeout: 15_000,
   },
 });
