@@ -150,7 +150,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
   return createPortal(
     <AnimatePresence>
       {open && (
-        <>
+        <div className="appmenu-layer" key="appmenu-layer">
           {/* This click-catcher must stay BELOW .appmenu (z-index 7800);
               any higher and it swallows every hover and click inside the
               menu, including the power actions in the footer. */}
@@ -341,7 +341,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
               </div>
             </footer>
           </motion.div>
-        </>
+        </div>
       )}
       {menu.node}
     </AnimatePresence>,

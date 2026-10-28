@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AppId, NotificationItem } from '@/types';
 import { useSettings } from '@/core/themes/settingsStore';
+import { playSound } from '@/core/audio/sfx';
 import { uid } from '@/utils';
 
 interface NotifyInput {
@@ -37,6 +38,7 @@ export const useNotifications = create<NotificationsState>((set, get) => ({
       read: false,
     };
     if (!settings.notificationsEnabled) return item.id;
+    if (!settings.dnd && !input.silent) playSound(item.kind === 'error' ? 'error' : 'notify');
     set((state) => ({
       items: [item, ...state.items].slice(0, 60),
       toasts: settings.dnd || input.silent ? state.toasts : [item, ...state.toasts].slice(0, 4),

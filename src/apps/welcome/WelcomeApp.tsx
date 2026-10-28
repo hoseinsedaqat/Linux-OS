@@ -9,6 +9,10 @@ import {
   Sparkles,
   Table2,
   Wallet,
+  Gamepad2,
+  CloudSun,
+  Images,
+  Music4,
 } from 'lucide-react';
 import type { AppWindowProps } from '@/core/apps/types';
 import { useWindows } from '@/core/window-manager/windowsStore';
@@ -30,6 +34,10 @@ export function WelcomeApp({ win }: AppWindowProps) {
     { appId: 'calc' as const, icon: Table2, title: t('Calc'), description: t('Spreadsheets with formulas, CSV import/export and formatting.') },
     { appId: 'browser' as const, icon: Globe2, title: t('Browser'), description: t('A simulated browser with tabs, bookmarks and history.') },
     { appId: 'accounting' as const, icon: Wallet, title: t('Accounting'), description: t('Persian-first bookkeeping: invoices, parties, reports.') },
+    { appId: 'games' as const, icon: Gamepad2, title: t('Games'), description: t('Four complete games with saved high scores.') },
+    { appId: 'music' as const, icon: Music4, title: t('Music'), description: t('A synthesised player with a live visualizer.') },
+    { appId: 'photos' as const, icon: Images, title: t('Photos'), description: t('A gallery over the virtual Pictures folder.') },
+    { appId: 'weather' as const, icon: CloudSun, title: t('Weather'), description: t('Live forecasts from Open-Meteo.') },
     { appId: 'settings' as const, icon: Settings2, title: t('Settings'), description: t('Personalize appearance, panel, storage and accessibility.') },
   ];
 

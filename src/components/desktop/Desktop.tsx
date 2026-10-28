@@ -40,6 +40,11 @@ import { PromptDialog } from '@/components/common/PromptDialog';
 import { NovaLogo } from '@/components/common/NovaLogo';
 import { Osd } from '@/components/common/Osd';
 import { AppShortcutDialog } from '@/components/desktop/AppShortcutDialog';
+import { CommandPalette } from '@/components/desktop/CommandPalette';
+import { Overview } from '@/components/desktop/Overview';
+import { ShortcutsSheet } from '@/components/desktop/ShortcutsSheet';
+import { Screensaver } from '@/components/desktop/Screensaver';
+import { OnboardingTour } from '@/components/desktop/OnboardingTour';
 import { useT } from '@/core/localization/i18n';
 import { useUiStatus } from '@/core/persistence/kvStore';
 import { notify, notifyError } from '@/core/notifications/notificationsStore';
@@ -103,6 +108,8 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   }));
   const [selected, setSelected] = useState<string | null>(null);
   const [shortcutDialog, setShortcutDialog] = useState(false);
+  const paletteOpen = useShell((state) => state.paletteOpen);
+  const setPalette = useShell((state) => state.setPalette);
   const [prompt, setPrompt] = useState<{ mode: 'folder' | 'text' | 'rename'; node?: FSNode } | null>(null);
   const [introVisible, setIntroVisible] = useState(!sessionStorage.getItem('nova.introShown'));
 
@@ -110,6 +117,20 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches,
     [],
   );
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = target?.closest('input, textarea, select, [contenteditable="true"]');
+      if (typing) return;
+      if (event.key === '?' || (event.shiftKey && event.key === '/')) {
+        event.preventDefault();
+        useShell.getState().openOverlay('shortcuts');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   useEffect(() => {
     const onResize = () => setViewport({ width: window.innerWidth, height: window.innerHeight });
@@ -388,7 +409,9 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   return (
     <div className="nova-root desktop" onContextMenu={desktopMenu} style={{ background: '#04070a' }}>
       <div
+        id="nova-desktop-root"
         className="desktop__canvas"
+        tabIndex={-1}
         style={
           {
             position: 'absolute',
@@ -482,6 +505,10 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
           </div>
         </div>
 
+        <a className="skip-to-desktop" href="#nova-desktop-root">
+          {t('Skip to the desktop')}
+        </a>
+
         <WindowManager metrics={metrics} />
 
         <div className="desktop__brightness" style={{ opacity: dimOpacity }} />
@@ -489,6 +516,23 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
         <Panel metrics={metrics} onLock={onLock} onShutdown={onShutdown} onRestart={onRestart} />
 
         <AppMenu open={overlay === 'appmenu'} onLock={onLock} onShutdown={onShutdown} />
+
+        <Overview />
+
+        <CommandPalette
+          open={paletteOpen}
+          onClose={() => setPalette(false)}
+          onLock={onLock}
+          onShowShortcuts={() => useShell.getState().openOverlay('shortcuts')}
+        />
+
+        <ShortcutsSheet
+          open={overlay === 'shortcuts'}
+          onClose={() => useShell.getState().closeOverlays()}
+        />
+
+        <OnboardingTour />
+        <Screensaver />
 
         <AnimatePresence>
           {introVisible && !reduceMotion && (
@@ -598,6 +642,8 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
 
 function FileGlyph({ node }: { node: FSNode }) {
   if (node.kind === 'folder') return <AppIcon appId="files" size="xl" />;
+  // `.app` launcher files carry their target so the desktop shows the real icon.
+  if (typeof node.meta?.appId === 'string') return <AppIcon appId={node.meta.appId as AppId} size="xl" />;
   if (node.kind === 'spreadsheet') return <AppIcon appId="calc" size="xl" />;
   if (node.kind === 'presentation') return <AppIcon appId="impress" size="xl" />;
   if (node.kind === 'note') return <AppIcon appId="notes" size="xl" />;

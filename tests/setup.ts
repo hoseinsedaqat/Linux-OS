@@ -54,8 +54,8 @@ afterEach(() => {
 });
 
 function useResetStores() {
-  useWindows.setState({ windows: [], activeId: null, nextZ: 10 });
-  useShell.setState({ overlay: null });
+  useWindows.setState({ windows: [], activeId: null, nextZ: 10, workspace: 1 });
+  useShell.setState({ overlay: null, paletteOpen: false });
   useNotifications.setState({ items: [] });
   useSettings.getState().reset();
 }

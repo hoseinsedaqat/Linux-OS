@@ -18,7 +18,15 @@ export type AppId =
   | 'software'
   | 'monitor'
   | 'trash'
-  | 'welcome';
+  | 'welcome'
+  | 'games'
+  | 'minesweeper'
+  | 'game2048'
+  | 'snake'
+  | 'tictactoe'
+  | 'music'
+  | 'photos'
+  | 'weather';
 
 export type Language = 'en' | 'fa';
 export type ThemeMode = 'dark' | 'light';
@@ -36,6 +44,7 @@ export interface AppDefinition {
     | 'System'
     | 'Utilities'
     | 'Development'
+    | 'Games'
     | 'Favorites';
   icon: string;
   color: string;
@@ -115,6 +124,8 @@ export interface WindowPayload {
   date?: string;
 }
 
+export type SnapMode = 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 export interface WindowInstance extends WindowRect {
   id: string;
   appId: AppId;
@@ -127,6 +138,10 @@ export interface WindowInstance extends WindowRect {
   createdAt: number;
   /** True while the open animation plays. */
   opening?: boolean;
+  /** Virtual desktop (1-based) the window lives on. */
+  workspace?: number;
+  /** Set while the window is tiled to a screen edge. */
+  snapped?: SnapMode;
 }
 
 /* ------------------------------------------------------------------ */
@@ -137,6 +152,8 @@ export interface SettingsState {
   language: Language;
   theme: ThemeMode;
   accent: 'mint' | 'sky' | 'violet' | 'amber' | 'rose';
+  /** Optional hex accent overriding the preset palette (theme studio). */
+  customAccent?: string | null;
   wallpaper: string;
   customWallpaper?: string | null;
   brightness: number;
@@ -146,6 +163,12 @@ export interface SettingsState {
   panelSize: 'compact' | 'normal' | 'large';
   panelAutoHide: boolean;
   reduceMotion: boolean;
+  /** Short Web Audio feedback sounds for shell actions. */
+  sounds: boolean;
+  /** Boosts contrast and thickens focus rings for accessibility. */
+  highContrast: boolean;
+  /** Minutes of inactivity before the screensaver appears (0 = off). */
+  screensaverMinutes: number;
   uiScale: number;
   fontSize: number;
   cornerRadius: number;

@@ -16,7 +16,7 @@
  * and offers to open the query in the real browser.
  */
 
-export type SearchSource = 'wikipedia' | 'duckduckgo';
+export type SearchSource = 'wikipedia' | 'duckduckgo' | 'hackernews' | 'stackexchange' | 'dictionary';
 
 export interface SearchHit {
   id: string;
@@ -35,6 +35,14 @@ export interface InstantAnswer {
   source: SearchSource;
 }
 
+export interface SearchSourceStatus {
+  id: SearchSource | 'wikipedia';
+  label: string;
+  state: 'ok' | 'empty' | 'error';
+  count: number;
+  message?: string;
+}
+
 export interface SearchOutcome {
   query: string;
   hits: SearchHit[];
@@ -42,7 +50,9 @@ export interface SearchOutcome {
   /** "Did you mean …" from the search backend. */
   suggestion?: string;
   totalHits?: number;
-  /** Set when every backend failed (offline, blocked network, …). */
+  /** Per-provider outcome, so the UI can be honest about what answered. */
+  sources: SearchSourceStatus[];
+  /** True when *every* provider failed (offline, blocked network, …). */
   failed: boolean;
 }
 
@@ -131,6 +141,10 @@ interface WikiQueryResponse {
   error?: { info?: string };
 }
 
+export function toPlainText(value: unknown): string {
+  return toText(value);
+}
+
 function toText(value: unknown): string {
   if (typeof value !== 'string') return '';
   return value
@@ -145,7 +159,10 @@ function toText(value: unknown): string {
     .trim();
 }
 
-export function mapWikipediaSearch(json: unknown, lang = 'en'): Omit<SearchOutcome, 'failed' | 'query'> {
+export function mapWikipediaSearch(
+  json: unknown,
+  lang = 'en',
+): { hits: SearchHit[]; suggestion?: string; totalHits?: number } {
   const data = (json ?? {}) as WikiQueryResponse;
   const pages = Object.values(data.query?.pages ?? {});
   const hits: SearchHit[] = pages
@@ -238,24 +255,8 @@ export function mapWikipediaArticle(json: unknown, lang = 'en'): Article | null 
 const API_TIMEOUT = 9000;
 
 async function fetchJson<T>(url: string, signal?: AbortSignal): Promise<T> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), API_TIMEOUT);
-  const forwardAbort = () => controller.abort();
-  signal?.addEventListener('abort', forwardAbort);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      mode: 'cors',
-      credentials: 'omit',
-      referrerPolicy: 'no-referrer',
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return (await response.json()) as T;
-  } finally {
-    clearTimeout(timer);
-    signal?.removeEventListener('abort', forwardAbort);
-  }
+  const { fetchJson: fetchOnce } = await import('./providers');
+  return fetchOnce<T>(url, signal, API_TIMEOUT);
 }
 
 function wikiApi(lang: string): string {
@@ -313,30 +314,95 @@ export function wikipediaArticleUrlApi(title: string, lang = 'en'): string {
   return `${wikiApi(lang)}?${params.toString()}`;
 }
 
-/** Real search. Never throws: failures come back as `failed: true`. */
-export async function runWebSearch(query: string, options: { lang?: string; signal?: AbortSignal } = {}): Promise<SearchOutcome> {
+/* ------------------------------------------------------------------ */
+/* Aggregated search                                                   */
+/* ------------------------------------------------------------------ */
+
+const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_LIMIT = 40;
+const cache = new Map<string, { at: number; value: SearchOutcome }>();
+
+function cacheKey(query: string, lang: string): string {
+  return `${lang}::${query.trim().toLowerCase()}`;
+}
+
+/** Drop cached results (used by the "Try again" button). */
+export function clearSearchCache(): void {
+  cache.clear();
+}
+
+function dedupe(hits: SearchHit[]): SearchHit[] {
+  const seen = new Set<string>();
+  const out: SearchHit[] = [];
+  for (const hit of hits) {
+    const key = hit.url.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(hit);
+  }
+  return out;
+}
+
+/**
+ * Run a real search across every enabled provider in parallel.
+ *
+ * Never throws: transport failures are reported per provider, and only if all
+ * of them fail is the outcome marked as failed.
+ */
+export async function runWebSearch(
+  query: string,
+  options: { lang?: string; signal?: AbortSignal; fresh?: boolean } = {},
+): Promise<SearchOutcome> {
   const lang = normalizeWikiLang(options.lang);
   const trimmed = query.trim();
-  const empty: SearchOutcome = { query: trimmed, hits: [], failed: false };
-  if (!trimmed) return empty;
+  if (!trimmed) return { query: trimmed, hits: [], sources: [], failed: false };
 
-  const [wiki, ddg] = await Promise.allSettled([
-    fetchJson<WikiQueryResponse>(wikipediaSearchUrl(trimmed, lang), options.signal),
-    fetchJson<DdgResponse>(duckDuckGoUrl(trimmed), options.signal).catch(() => null),
-  ]);
+  const key = cacheKey(trimmed, lang);
+  const cached = cache.get(key);
+  if (!options.fresh && cached && Date.now() - cached.at < CACHE_TTL) return cached.value;
 
-  const wikiData = wiki.status === 'fulfilled' ? mapWikipediaSearch(wiki.value, lang) : { hits: [] as SearchHit[] };
-  const answer = ddg.status === 'fulfilled' && ddg.value ? mapDuckDuckGo(ddg.value) : undefined;
-  const failed = wiki.status === 'rejected' && !answer;
+  const { PROVIDERS, runProvider } = await import('./providers');
+  const active = PROVIDERS.filter((provider) => !provider.enabled || provider.enabled(trimmed));
+  const settled = await Promise.all(
+    active.map((provider) => runProvider(provider, trimmed, lang, options.signal)),
+  );
 
-  return {
+  const hits: SearchHit[] = [];
+  let answer: InstantAnswer | undefined;
+  let suggestion: string | undefined;
+  let totalHits: number | undefined;
+  const sources: SearchSourceStatus[] = [];
+  let anySuccess = false;
+
+  for (const { status, result } of settled) {
+    if (!options.signal?.aborted) {
+      sources.push(status);
+      if (status.state !== 'error') anySuccess = true;
+    }
+    hits.push(...result.hits);
+    if (!answer && result.answer) answer = result.answer;
+    if (!suggestion && result.suggestion) suggestion = result.suggestion;
+    if (totalHits === undefined && typeof result.totalHits === 'number') totalHits = result.totalHits;
+  }
+
+  const value: SearchOutcome = {
     query: trimmed,
-    hits: wikiData.hits,
+    hits: dedupe(hits),
     answer,
-    suggestion: 'suggestion' in wikiData ? wikiData.suggestion : undefined,
-    totalHits: 'totalHits' in wikiData ? wikiData.totalHits : undefined,
-    failed,
+    suggestion,
+    totalHits,
+    sources,
+    failed: !anySuccess,
   };
+
+  if (!options.signal?.aborted && (value.hits.length > 0 || value.answer)) {
+    if (cache.size >= CACHE_LIMIT) {
+      const oldest = [...cache.entries()].sort((a, b) => a[1].at - b[1].at)[0];
+      if (oldest) cache.delete(oldest[0]);
+    }
+    cache.set(key, { at: Date.now(), value });
+  }
+  return value;
 }
 
 /** Load a Wikipedia article for the reader view. Returns null when unavailable. */

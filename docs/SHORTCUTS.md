@@ -4,21 +4,29 @@
 
 | Shortcut | Action |
 | --- | --- |
-| `Ctrl / Cmd + K` | Applications menu |
+| `Ctrl / Cmd + K` | Command palette (apps, windows, actions, workspaces) |
 | `Ctrl + Alt + T` | Terminal |
 | `Ctrl + Alt + L` | Lock session |
+| `Ctrl + Alt + ↑` | Window overview (Exposé) |
+| `Ctrl + Alt + ← / →` | Previous / next virtual desktop |
+| `Shift + ?` | Keyboard shortcut sheet |
 | `Alt + Tab` | Focus next window |
-| `Esc` | Close menu / dialog / overlay |
+| `Esc` | Close menu / dialog / overlay / palette |
 
 ## Window manager
 
 | Shortcut / gesture | Action |
 | --- | --- |
 | Drag title bar | Move window |
-| Drag to top edge | Snap preview → maximise on release |
+| Drag to top edge | Maximise on release |
+| Drag to left / right edge | Tile to that half |
+| Drag into a corner | Tile to that quarter |
+| `Super + ← / →` | Tile active window to a half |
+| `Super + ↑` | Maximise |
+| `Super + ↓` | Restore a snapped window / minimise |
 | Double-click title bar | Toggle maximise |
 | Drag any window edge/corner | Resize (eight handles) |
-| Right-click title bar | Window menu (restore, snap left/right, close) |
+| Right-click title bar | Window menu (restore, tile, move to workspace, close) |
 | Right-click desktop | Desktop menu (new folder, new text file, wallpaper, display settings) |
 
 ## Files
@@ -78,3 +86,35 @@
 
 `sudo`, package managers and anything touching the real machine are explicitly rejected with an
 explanation — the shell only sees the simulated virtual file system.
+
+## Games
+
+### Minesweeper
+| Input | Action |
+| --- | --- |
+| Left click | Reveal a cell (first click is always safe) |
+| Right click / long press | Place or remove a flag |
+| Click a revealed number with all mines flagged | Chord: open the remaining neighbours |
+| Difficulty buttons | 9×9 / 12×16 / 14×20 boards |
+
+### 2048
+| Input | Action |
+| --- | --- |
+| Arrow keys / `WASD` | Slide the board |
+| Swipe | Slide on touch screens |
+| Undo | One step back |
+
+### Snake
+| Input | Action |
+| --- | --- |
+| Arrow keys / `WASD` | Steer |
+| `Space` | Pause / resume |
+| `R` | Restart |
+| On-screen D-pad / swipe | Touch controls |
+
+### Tic-Tac-Toe
+| Input | Action |
+| --- | --- |
+| Click a cell | Place your mark |
+| “Two players” | Alternate X and O on the same screen |
+| Easy / Medium / Hard | Random / optimal 65 % / full minimax opponent |

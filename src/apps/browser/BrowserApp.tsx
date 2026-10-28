@@ -82,6 +82,7 @@ export function BrowserApp({ win }: AppWindowProps) {
   const clock = useClock(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [addressFocused, setAddressFocused] = useState(false);
+  const [suggestIndex, setSuggestIndex] = useState(-1);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
   const currentUrl = activeTab?.history[activeTab.historyIndex] ?? 'nova://newtab';
@@ -136,6 +137,8 @@ export function BrowserApp({ win }: AppWindowProps) {
       controller.abort();
     };
   }, [address, addressFocused, lang]);
+
+  useEffect(() => setSuggestIndex(-1), [suggestions]);
 
   const updateTab = (id: string, updater: (tab: BrowserTab) => BrowserTab) => {
     setTabs((current) => current.map((tab) => (tab.id === id ? updater(tab) : tab)));
@@ -412,16 +415,34 @@ export function BrowserApp({ win }: AppWindowProps) {
                 setSuggestions([]);
                 setAddressFocused(false);
                 event.currentTarget.blur();
+                return;
+              }
+              if (!addressFocused || suggestions.length === 0) return;
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setSuggestIndex((index) => (index + 1) % suggestions.length);
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setSuggestIndex((index) => (index <= 0 ? suggestions.length - 1 : index - 1));
+              } else if (event.key === 'Enter' && suggestIndex >= 0) {
+                event.preventDefault();
+                const picked = suggestions[suggestIndex];
+                setSuggestions([]);
+                setAddressFocused(false);
+                setSuggestIndex(-1);
+                openArticle(picked);
+                addressRef.current?.blur();
               }
             }}
           />
           {addressFocused && suggestions.length > 0 && (
             <div className="browser__suggest">
-              {suggestions.map((item) => (
+              {suggestions.map((item, index) => (
                 <button
                   key={item}
                   type="button"
-                  className="browser__suggest-row"
+                  className={cn('browser__suggest-row', index === suggestIndex && 'is-active')}
+                  onMouseEnter={() => setSuggestIndex(index)}
                   onMouseDown={(event) => {
                     event.preventDefault();
                     setSuggestions([]);

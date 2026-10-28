@@ -10,9 +10,6 @@ export function applyTheme(settings: SettingsState): void {
   root.dir = settings.language === 'fa' ? 'rtl' : 'ltr';
   root.lang = settings.language === 'fa' ? 'fa' : 'en';
 
-  root.style.setProperty('--accent', accentHex(settings.accent));
-  const rgb = hexToRgb(accentHex(settings.accent));
-  if (rgb) root.style.setProperty('--accent-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
   root.style.setProperty('--font-scale', String(settings.fontSize / 100));
   root.style.setProperty('--ui-scale', String(settings.uiScale / 100));
   root.style.setProperty('--window-alpha', String(settings.windowTransparency));
@@ -22,6 +19,22 @@ export function applyTheme(settings: SettingsState): void {
   root.style.setProperty('--radius-md', `${Math.max(6, Math.round(settings.cornerRadius - 2))}px`);
   root.style.setProperty('--brightness', String(settings.brightness / 100));
   document.body.classList.toggle('reduce-motion', settings.reduceMotion);
+  document.body.classList.toggle('high-contrast', settings.highContrast);
+
+  // Custom accent (theme studio) wins over the preset palette but keeps the
+  // derived rgb triplet in sync so translucent surfaces follow along.
+  const custom = settings.customAccent?.trim();
+  if (custom && /^#[0-9a-f]{6}$/i.test(custom)) {
+    root.style.setProperty('--accent', custom);
+    const customRgb = hexToRgb(custom);
+    if (customRgb) root.style.setProperty('--accent-rgb', `${customRgb.r}, ${customRgb.g}, ${customRgb.b}`);
+    root.dataset.customAccent = 'true';
+  } else {
+    root.removeAttribute('data-custom-accent');
+    root.style.setProperty('--accent', accentHex(settings.accent));
+    const rgb = hexToRgb(accentHex(settings.accent));
+    if (rgb) root.style.setProperty('--accent-rgb', `${rgb.r}, ${rgb.g}, ${rgb.b}`);
+  }
 
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', settings.theme === 'dark' ? '#05080b' : '#e8edf3');

@@ -10,6 +10,7 @@ interface WindowManagerProps {
 
 export function WindowManager({ metrics }: WindowManagerProps) {
   const windows = useWindows((state) => state.windows);
+  const workspace = useWindows((state) => state.workspace);
   const updateRect = useWindows((state) => state.updateRect);
 
   // Keep every window inside the work area when the canvas/panel changes.
@@ -45,7 +46,7 @@ export function WindowManager({ metrics }: WindowManagerProps) {
   }, [metrics, updateRect]);
 
   return (
-    <div className="window-layer">
+    <div className="window-layer" data-workspace={workspace}>
       {windows.map((win) => (
         <WindowFrame key={win.id} win={win} />
       ))}

@@ -3,12 +3,18 @@ import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { HOME_PATH, findByPath, pathOf } from '@/core/virtual-filesystem/fsUtils';
 import { fileAppFor } from '@/core/apps/types';
+import { APP_META } from '@/core/apps/appMeta';
 
 export function openNode(node: FSNode): void {
   const nodes = useFiles.getState().nodes;
   const path = pathOf(nodes, node.id);
   if (node.kind === 'folder') {
     useWindows.getState().openApp('files', { folderPath: path, path });
+    return;
+  }
+  const launcher = typeof node.meta?.appId === 'string' ? (node.meta.appId as AppId) : null;
+  if (launcher && APP_META[launcher]) {
+    useWindows.getState().openApp(launcher, undefined, { title: APP_META[launcher].name });
     return;
   }
   const appId = fileAppFor(node);

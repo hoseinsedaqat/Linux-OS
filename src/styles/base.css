@@ -1209,3 +1209,74 @@ input[type='checkbox'],
 input[type='radio'] {
   accent-color: var(--accent);
 }
+
+/* ==================================================================
+   Accessibility: high-contrast mode and a visible global focus ring
+   ================================================================== */
+
+body.high-contrast {
+  --text-1: #ffffff;
+  --text-2: #dfe8f4;
+  --text-3: #b6c4d6;
+  --border-1: rgba(255, 255, 255, 0.28);
+  --border-2: rgba(255, 255, 255, 0.42);
+  --border-strong: rgba(255, 255, 255, 0.62);
+  --hover: rgba(255, 255, 255, 0.14);
+  --active: rgba(255, 255, 255, 0.2);
+  --surface-1: #05080d;
+  --surface-2: #0b1119;
+  --surface-3: #141c27;
+  --input-bg: #010306;
+}
+
+body.high-contrast[data-theme='light'] {
+  --text-1: #05070a;
+  --text-2: #1d2632;
+  --text-3: #3c4a5c;
+  --border-1: rgba(0, 0, 0, 0.35);
+  --border-2: rgba(0, 0, 0, 0.5);
+  --surface-1: #ffffff;
+  --surface-2: #f2f5f9;
+  --surface-3: #e4eaf2;
+}
+
+body.high-contrast .window,
+body.high-contrast .panel,
+body.high-contrast .panel__button,
+body.high-contrast .btn,
+body.high-contrast .input {
+  border-width: 1px;
+  border-color: var(--border-2);
+}
+
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Skip link for keyboard users — only visible when focused. */
+.skip-to-desktop {
+  position: fixed;
+  top: 8px;
+  inset-inline-start: 8px;
+  z-index: 100000;
+  transform: translateY(-160%);
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.14s ease;
+}
+
+.skip-to-desktop:focus-visible {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-to-desktop {
+    transition: none;
+  }
+}

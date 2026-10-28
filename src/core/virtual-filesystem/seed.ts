@@ -165,6 +165,24 @@ const novaLogoSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height=
 <text x="160" y="150" font-family="Inter, sans-serif" font-size="15" fill="#9fb3c8" text-anchor="middle" letter-spacing="4">NOVA LINUX</text>
 </svg>`;
 
+/**
+ * Launcher files: `*.app` nodes carry the target app id in `meta.appId`.
+ * Double-clicking one in Files opens that application (see services/fileActions).
+ */
+function gameShortcuts(): FSNode[] {
+  const shortcuts: Array<[string, string, string, string]> = [
+    ['file-game-minesweeper', 'Minesweeper.app', 'minesweeper', 'Clear a minefield with logic and flags.'],
+    ['file-game-2048', '2048.app', 'game2048', 'Slide tiles and reach 2048.'],
+    ['file-game-snake', 'Snake.app', 'snake', 'Grow the snake without biting yourself.'],
+    ['file-game-tictactoe', 'Tic-Tac-Toe.app', 'tictactoe', 'Beat the minimax computer or play a friend.'],
+  ];
+  return shortcuts.map(([id, name, appId, description]) =>
+    file(id, FOLDER_IDS.games, name, 'binary', `${description}\n\nLaunch: NOVA app "${appId}"`, {
+      meta: { appId, description, mime: 'application/x-nova-app' },
+    }),
+  );
+}
+
 /** The simulated system image. System nodes cannot be trashed. */
 export function createSeedTree(): FSNode[] {
   const nodes: FSNode[] = [
@@ -176,6 +194,7 @@ export function createSeedTree(): FSNode[] {
     folder(FOLDER_IDS.downloads, 'dir-demo', 'Downloads'),
     folder(FOLDER_IDS.pictures, 'dir-demo', 'Pictures'),
     folder(FOLDER_IDS.music, 'dir-demo', 'Music'),
+    folder(FOLDER_IDS.games, 'dir-demo', 'Games'),
     folder(FOLDER_IDS.videos, 'dir-demo', 'Videos'),
     folder(FOLDER_IDS.notes, 'dir-demo', 'Notes'),
     folder(FOLDER_IDS.projects, FOLDER_IDS.documents, 'Projects'),
@@ -268,6 +287,8 @@ Version 1.0.0
 - IndexedDB persistence with JSON backup & restore.
 `,
     ),
+    ...gameShortcuts(),
+
     file('file-logo', FOLDER_IDS.pictures, 'nova-logo.svg', 'image', novaLogoSvg, {
       meta: { mime: 'image/svg+xml' },
     }),

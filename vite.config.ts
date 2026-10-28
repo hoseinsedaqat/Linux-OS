@@ -25,7 +25,24 @@ export default defineConfig(({ command }) => ({
     assetsDir: 'assets',
     target: 'es2020',
     cssCodeSplit: true,
-    chunkSizeWarningLimit: 1200,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        /*
+         * Keep the shell bundle small by splitting the big, rarely-changing
+         * vendor libraries into their own long-lived chunks. Application code
+         * is already split per app through React.lazy in the registry.
+         */
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler')) return 'vendor-react';
+          if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) return 'vendor-motion';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('zustand')) return 'vendor-state';
+          return 'vendor';
+        },
+      },
+    },
   },
   server: {
     host: '0.0.0.0',

@@ -12,6 +12,13 @@ import {
   wikipediaUrlFor,
 } from '@/apps/browser/search';
 import { displayUrl, normalizeUrl } from '@/apps/browser/browserStore';
+import {
+  mapDictionary,
+  mapHackerNews,
+  mapStackExchange,
+  searchWikipedia,
+} from '@/apps/browser/providers';
+import { runWebSearch } from '@/apps/browser/search';
 
 describe('nova:// routing', () => {
   it('round-trips a search URL', () => {
@@ -133,5 +140,96 @@ describe('search response mapping', () => {
     expect(article?.thumbnail).toBe('https://img/a.png');
     expect(mapWikipediaArticle({ query: { pages: { 7: { title: 'Gone', missing: '' } } } })).toBeNull();
     expect(mapWikipediaArticle({})).toBeNull();
+  });
+});
+
+describe('search providers', () => {
+  it('maps Hacker News stories with metadata and falls back to the item page', () => {
+    const hits = mapHackerNews({
+      hits: [
+        { objectID: '1', title: 'Show HN: A thing', url: 'https://example.com/a', points: 120, num_comments: 44, author: 'pg' },
+        { objectID: '2', title: '', story_title: '' },
+        { objectID: '3', story_title: 'Ask HN: no url' },
+      ],
+    });
+    expect(hits).toHaveLength(2);
+    expect(hits[0].snippet).toContain('120 points');
+    expect(hits[0].snippet).toContain('by pg');
+    expect(hits[1].url).toBe('https://news.ycombinator.com/item?id=3');
+    expect(mapHackerNews(null)).toEqual([]);
+  });
+
+  it('maps Stack Exchange questions', () => {
+    const hits = mapStackExchange({
+      items: [
+        { question_id: 7, title: 'How &quot;to&quot; do it', link: 'https://stackoverflow.com/q/7', score: 9, answer_count: 2, is_answered: true, tags: ['js', 'dom'] },
+        { question_id: 8, title: '', link: '' },
+      ],
+    });
+    expect(hits).toHaveLength(1);
+    expect(hits[0].title).toBe('How "to" do it');
+    expect(hits[0].snippet).toContain('#js');
+    expect(hits[0].source).toBe('stackexchange');
+  });
+
+  it('turns a dictionary payload into an answer card', () => {
+    const answer = mapDictionary([
+      { word: 'kernel', phonetic: '/ˈkɜːnəl/', meanings: [{ partOfSpeech: 'noun', definitions: [{ definition: 'The core of an operating system.', example: 'the Linux kernel' }] }], sourceUrls: ['https://en.wiktionary.org/wiki/kernel'] },
+    ]);
+    expect(answer?.heading).toBe('kernel /ˈkɜːnəl/ · noun');
+    expect(answer?.text).toContain('core of an operating system');
+    expect(mapDictionary([{ word: 'x' }])).toBeUndefined();
+    expect(mapDictionary(null)).toBeUndefined();
+  });
+
+  it('resolves wikipedia through the REST fallback when the action API fails', async () => {
+    const calls: string[] = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.includes('api.php')) return new Response('nope', { status: 500 });
+      if (url.includes('api.wikimedia.org')) return new Response('blocked', { status: 403 });
+      return new Response(
+        JSON.stringify({
+          pages: [
+            {
+              id: 42,
+              title: 'Linux kernel',
+              excerpt: '<span class="searchmatch">Linux</span> kernel is the core',
+              thumbnail: { url: 'https://img/t.png' },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    }) as typeof fetch;
+    try {
+      const result = await searchWikipedia('linux', 'en');
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].snippet).toBe('Linux kernel is the core');
+      expect(calls.some((url) => url.includes('rest.php'))).toBe(true);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it('never fails the whole search when one provider is down', async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('hn.algolia.com')) {
+        return new Response(JSON.stringify({ hits: [{ objectID: '9', title: 'HN result', url: 'https://x.test' }] }), { status: 200 });
+      }
+      return new Response('down', { status: 503 });
+    }) as typeof fetch;
+    try {
+      const outcome = await runWebSearch('react hooks', { lang: 'en', fresh: true });
+      expect(outcome.failed).toBe(false);
+      expect(outcome.hits.some((hit) => hit.source === 'hackernews')).toBe(true);
+      expect(outcome.sources.some((source) => source.state === 'error')).toBe(true);
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });

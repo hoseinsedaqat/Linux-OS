@@ -61,12 +61,40 @@ release. "✔" marks points that are also covered by automated tests.
 24. Settings: theme, accent, wallpaper, panel, display/scale, fonts, keyboard, language (RTL flip), date/time, notifications, accessibility, About; storage export/import/restore/clear. ✔ (language + reduced motion)
 25. System apps: Calculator arithmetic, Calendar events, Terminal commands and `sudo` refusal, System Monitor "simulated" labelling, Software Center install/remove affecting the menu, Trash. ✔ (terminal)
 
+### New in this round — games, media, shell layers
+26. Games hub: every card launches its game, best scores come from the store and update after a round. ✔ (logic + render)
+27. Minesweeper: first click never hits a mine, right-click flags inside the mine budget, chord opens neighbours, win/lose overlays, best time per difficulty. ✔ (logic)
+28. 2048: merge rules (no double merge), lock detection, undo, best score, keyboard + swipe. ✔ (logic)
+29. Snake: steering, wall/self collision, food placement, speed curve, pause, restart, touch D-pad. ✔ (logic)
+30. Tic-Tac-Toe: wins on rows/columns/diagonals, draw detection, hard level never loses, two-player mode, tally. ✔ (logic)
+31. `~/Games` launchers: double-clicking an `.app` file in Files (or on the desktop) opens the matching game. ✔ (registry render)
+32. Music: play/pause a synthesised track, visualiser responds, volume slider, error state for unsupported files.
+33. Photos: thumbnails, keyboard navigation, zoom/rotate, details panel, “set as wallpaper” changes the desktop.
+34. Weather: current conditions, 24-hour strip and 7-day list load from Open-Meteo; blocking the request shows the retry state. ✔ (mapping)
+35. Command palette: `Ctrl+K`, arrow keys, `Enter`, `Escape`; every listed action runs. ✔ (state + a11y)
+36. Virtual desktops: windows stay on their desktop, switching focuses the right window, move-to-workspace works. ✔ (store)
+37. Tiling: drag to each edge/corner and `Super + arrows`; restore keeps the pre-snap rectangle. ✔ (store)
+38. Overview: lists every window with size and workspace; focus/minimise/close/move all work. ✔ (state)
+39. PWA: manifest installs, service worker registers in a production build, offline reload shows the shell.
+40. A11y: high contrast, reduced motion, text/UI scale, focus ring, skip link, named controls. ✔ (audit test)
+41. Theme studio: custom accent colour applies everywhere and can be reset to a preset. ✔ (applyTheme test)
+42. Screensaver: configured delay shows the clock, any input dismisses it.
+43. Onboarding tour: appears once on first login, can be skipped, and the first-run tour can be reopened from the shell overlay (`openOverlay('tour')`, used by Settings).
+
 ### Robustness
-26. Persistence: create a document/note/accounting record, reload the page and confirm it is still there.
-27. Storage failure: with site data blocked, the shell shows a warning banner and still works for the session.
-28. Corrupt data: invalid JSON in LocalStorage/IndexedDB settings is ignored and defaults are restored.
-29. No critical console errors during the checklist; no `NaN`, no missing-key warnings.
-30. GitHub Pages: build with `VITE_BASE=/<repo>/`, every asset resolves under the sub-path, deep reloads work.
+44. Persistence: create a document/note/accounting record, reload the page and confirm it is still there.
+45. Storage failure: with site data blocked, the shell shows a warning banner and still works for the session.
+46. Corrupt data: invalid JSON in LocalStorage/IndexedDB settings is ignored and defaults are restored.
+47. No critical console errors during the checklist; no `NaN`, no missing-key warnings.
+48. GitHub Pages: build with `VITE_BASE=/<repo>/`, every asset resolves under the sub-path, deep reloads work.
+
+## Automated gates
+
+```bash
+npm run typecheck   # strict TS
+npm run test        # Vitest: logic, apps, shell, games, weather, a11y
+npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
+```
 
 ## Manual spot-check commands
 
