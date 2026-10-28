@@ -288,7 +288,7 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
                             ])
                           }
                         >
-                          <AppIcon appId={appId} size="sm" />
+                          <AppIcon appId={appId} size="lg" />
                           <span className="app-tile-btn__text">
                             <span className="app-tile-btn__name">{t(meta.name)}</span>
                             <span className="app-tile-btn__desc">{t(meta.description)}</span>
