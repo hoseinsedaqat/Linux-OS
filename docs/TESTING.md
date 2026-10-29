@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 257 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
+npm run test        # Vitest: 260 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -157,7 +157,9 @@ dismisses either surface if one appears anyway, so the helper stays honest.
   redirection effects, `grep`/`head`/`wc`/`sort`/`uniq`, `cd`, `rm -r`, unknown commands), the
   Markdown parser (blocks, inline tokens, plain text, slugs, malformed input), local usage counters,
   Writer/Impress templates and the four handbooks the Documentation app ships.
-- `tests/round4-ui.test.tsx` (29) — the four `~/Projects` samples (seeded with real content on a
+- `tests/round4-ui.test.tsx` (32) — the editor staying visible (the Kali skin may never paint an
+  opaque plate under the mirrored `.code__input`, the transparent-input/painted-mirror contract holds,
+  and typing re-renders the highlighted `<pre>`); the four `~/Projects` samples (seeded with real content on a
   fresh profile, blank ones refilled on boot while edited files survive, and `hello.ts` opening in the
   editor with code in the textarea); the Kali-inspired skin (Kali default theme, `blue` accent and
   `wallpaper-kali` default wallpaper, the dragon bitmap mounted on `.wallpaper`, every catalogue
