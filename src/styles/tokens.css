@@ -113,6 +113,85 @@
   --space-7: 48px;
 }
 
+/* ---------------- Kali-inspired skin (default theme) ----------------
+   Deep navy-black surfaces, a single electric blue accent and a thin cyan
+   hairline wherever two surfaces meet. Shapes are squarer than the older
+   glass look: sharp corners read as "tool" rather than "dashboard" and make
+   the neon accent the loudest thing on screen. */
+
+[data-theme='kali'] {
+  color-scheme: dark;
+
+  --accent: #2fb4ff;
+  --accent-rgb: 47, 180, 255;
+  --accent-2: #4fe3ff;
+  --accent-contrast: #021019;
+  --text-on-accent: #01131c;
+
+  --bg-0: #04060b;
+  --bg-1: #070a12;
+  --bg-2: #0b0f19;
+
+  --surface-1: #0a0f18;
+  --surface-2: #0e1522;
+  --surface-3: #141d2e;
+  --surface-inset: #060a11;
+  --surface-solid: #080d16;
+  --window-bg: #080c15;
+  --window-header: linear-gradient(180deg, #16223a 0%, #0c1320 100%);
+  --menu-bg: #0b1220;
+  --popover-bg: rgba(9, 14, 24, 0.97);
+  --panel-bg: rgba(6, 10, 18, 0.9);
+  --panel-highlight: rgba(79, 227, 255, 0.12);
+  --input-bg: #060a12;
+  --input-border: #1d2c42;
+  --code-bg: #05090f;
+
+  --text-1: #e8f3ff;
+  --text-2: #a3b6cd;
+  --text-3: #6c819a;
+
+  --border-1: rgba(79, 227, 255, 0.1);
+  --border-2: rgba(79, 227, 255, 0.2);
+  --border-strong: rgba(79, 227, 255, 0.4);
+
+  --hover: rgba(79, 227, 255, 0.08);
+  --active: rgba(79, 227, 255, 0.14);
+  --scrim: rgba(2, 5, 10, 0.72);
+
+  --danger: #ff5c7a;
+  --danger-rgb: 255, 92, 122;
+  --warning: #ffb638;
+  --success: #35e0a1;
+  --info: #4fe3ff;
+
+  /* squarer, tool-like geometry */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 11px;
+  --radius-xl: 16px;
+  --radius-window: 9px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 16px 36px -16px rgba(0, 0, 0, 0.85);
+  --shadow-lg: 0 30px 70px -30px rgba(0, 0, 0, 0.92), 0 0 0 1px rgba(79, 227, 255, 0.06);
+  --shadow-window: 0 0 0 1px rgba(79, 227, 255, 0.12) inset, 0 34px 80px -34px rgba(0, 0, 0, 0.96),
+    0 8px 24px -14px rgba(0, 0, 0, 0.8);
+
+  --glass-blur: 14px;
+}
+
+/* Accent presets that now include the Kali blue. */
+[data-accent='blue'] {
+  --accent: #2fb4ff;
+  --accent-rgb: 47, 180, 255;
+  --accent-2: #4fe3ff;
+  --accent-contrast: #021019;
+}
+
 /* ---------------- light theme ---------------- */
 
 [data-theme='light'] {

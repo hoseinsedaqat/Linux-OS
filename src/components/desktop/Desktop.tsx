@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import type { AppId, FSNode, SettingsState } from '@/types';
 import { useSettings } from '@/core/themes/settingsStore';
-import { wallpaperClass } from '@/core/themes/applyTheme';
+import { wallpaperClass, wallpaperImage } from '@/core/themes/applyTheme';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
 import { FOLDER_IDS, childrenOf } from '@/core/virtual-filesystem/fsUtils';
 import { useWindows } from '@/core/window-manager/windowsStore';
@@ -456,6 +456,9 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
     const base: React.CSSProperties = {};
     if (settings.wallpaper === 'custom' && settings.customWallpaper) {
       base.backgroundImage = `url(${settings.customWallpaper})`;
+    } else {
+      const image = wallpaperImage(settings.wallpaper);
+      if (image) base.backgroundImage = `url(${image})`;
     }
     if (settings.wallpaperBlur > 0) base.filter = `blur(${settings.wallpaperBlur}px)`;
     if (settings.wallpaperDim > 0) base.opacity = Math.max(0.2, 1 - settings.wallpaperDim / 100);

@@ -19,7 +19,7 @@ import { useSettings } from '@/core/themes/settingsStore';
 import { useClock, useOutsideClick } from '@/hooks';
 import { useT, formatLocalizedDate } from '@/core/localization/i18n';
 import { NovaWordmark } from '@/components/common/NovaLogo';
-import { wallpaperClass } from '@/core/themes/applyTheme';
+import { wallpaperClass, wallpaperImage } from '@/core/themes/applyTheme';
 import { cn } from '@/utils';
 
 interface LoginScreenProps {
@@ -98,7 +98,9 @@ export function LoginScreen({ mode, onSuccess, onRestart, onShutdown }: LoginScr
     if (settings.wallpaper === 'custom' && settings.customWallpaper) {
       return { backgroundImage: `url(${settings.customWallpaper})` } as React.CSSProperties;
     }
-    return undefined;
+    // Image-backed wallpapers (the Kali dragon) apply to the login screen too.
+    const image = wallpaperImage(settings.wallpaper);
+    return image ? ({ backgroundImage: `url(${image})` } as React.CSSProperties) : undefined;
   }, [settings.wallpaper, settings.customWallpaper]);
 
   return (

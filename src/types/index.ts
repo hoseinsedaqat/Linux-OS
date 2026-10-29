@@ -31,7 +31,7 @@ export type AppId =
   | 'docs';
 
 export type Language = 'en' | 'fa';
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'kali' | 'dark' | 'light';
 export type PanelPosition = 'bottom' | 'top' | 'left' | 'right';
 
 export interface AppDefinition {
@@ -153,7 +153,7 @@ export interface WindowInstance extends WindowRect {
 export interface SettingsState {
   language: Language;
   theme: ThemeMode;
-  accent: 'mint' | 'sky' | 'violet' | 'amber' | 'rose';
+  accent: 'blue' | 'mint' | 'sky' | 'violet' | 'amber' | 'rose';
   /** Optional hex accent overriding the preset palette (theme studio). */
   customAccent?: string | null;
   wallpaper: string;

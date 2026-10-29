@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="kali" data-accent="blue">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0e13" />
+    <meta name="theme-color" content="#04060b" />
     <meta
       name="description"
       content="NOVA Linux — a premium, interactive Linux desktop experience built with React and TypeScript. Boot, log in and explore a complete web-based operating system simulator."
@@ -15,6 +15,31 @@
     <meta name="color-scheme" content="dark light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script>
+      // Paint the saved theme and accent before the bundle loads, so a profile on
+      // Dark or Light never flashes the Kali skin first. Defensive by design: any
+      // unexpected value simply falls through to the markup defaults above.
+      (function () {
+        try {
+          var raw = localStorage.getItem('nova-linux.settings.v1');
+          if (!raw) return;
+          var saved = JSON.parse(raw).state || {};
+          var html = document.documentElement;
+          if (saved.theme === 'kali' || saved.theme === 'dark' || saved.theme === 'light') {
+            html.dataset.theme = saved.theme;
+          }
+          if (typeof saved.accent === 'string' && /^[a-z]{3,12}$/.test(saved.accent)) {
+            html.dataset.accent = saved.accent;
+          }
+          if (saved.theme === 'light') {
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', '#e8edf3');
+          }
+        } catch (error) {
+          /* ignore: defaults are already on <html> */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

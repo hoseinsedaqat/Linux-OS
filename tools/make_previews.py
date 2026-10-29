@@ -11,6 +11,7 @@ Output: docs/screenshots/*.svg
 """
 from __future__ import annotations
 
+import base64
 import math
 import os
 from html import escape
@@ -20,19 +21,21 @@ OUT = os.path.join(os.path.dirname(__file__), "..", "docs", "screenshots")
 W, H = 1440, 900
 
 # ---------------------------------------------------------------- palette
-BG = "#05080b"
-SURFACE_1 = "#0d121c"
-SURFACE_2 = "#121927"
-SURFACE_3 = "#1a2232"
-WINDOW_BG = "#0b101a"
-TITLEBAR = "#141c2a"
-TEXT_1 = "#edf2f9"
-TEXT_2 = "#a9b6c8"
-TEXT_3 = "#76849a"
-ACCENT = "#3ce3a4"
-ACCENT_2 = "#62c9ff"
-BORDER = "rgba(255,255,255,0.10)"
-BORDER_SOFT = "rgba(255,255,255,0.06)"
+# Kali-inspired skin: deep navy surfaces, one electric blue accent, cyan
+# hairline borders. Keep these in sync with src/styles/tokens.css.
+BG = "#04060b"
+SURFACE_1 = "#0a0f18"
+SURFACE_2 = "#0e1522"
+SURFACE_3 = "#141d2e"
+WINDOW_BG = "#080c15"
+TITLEBAR = "#111b2d"
+TEXT_1 = "#e8f3ff"
+TEXT_2 = "#a3b6cd"
+TEXT_3 = "#6c819a"
+ACCENT = "#2fb4ff"
+ACCENT_2 = "#4fe3ff"
+BORDER = "rgba(79,227,255,0.20)"
+BORDER_SOFT = "rgba(79,227,255,0.10)"
 SANS = "DejaVu Sans, Inter, sans-serif"
 MONO = "DejaVu Sans Mono, monospace"
 
@@ -74,8 +77,8 @@ def defs(extra=""):
     return (
         "<defs>"
         '<linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">'
-        f'<stop offset="0%" stop-color="#060b12"/><stop offset="55%" stop-color="#071018"/>'
-        '<stop offset="100%" stop-color="#04070c"/></linearGradient>'
+        f'<stop offset="0%" stop-color="#05080f"/><stop offset="55%" stop-color="#071120"/>'
+        '<stop offset="100%" stop-color="#03060c"/></linearGradient>'
         '<radialGradient id="glow" cx="72%" cy="12%" r="62%">'
         f'<stop offset="0%" stop-color="{ACCENT}" stop-opacity="0.20"/>'
         '<stop offset="55%" stop-color="#3ce3a4" stop-opacity="0.05"/>'
@@ -85,8 +88,8 @@ def defs(extra=""):
         '<stop offset="100%" stop-color="#000000" stop-opacity="0"/></radialGradient>'
         f'<linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="{ACCENT}"/>'
         f'<stop offset="100%" stop-color="{ACCENT_2}"/></linearGradient>'
-        f'<linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1b2434"/>'
-        '<stop offset="100%" stop-color="#121a27"/></linearGradient>'
+        f'<linearGradient id="titlebar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#16223a"/>'
+        '<stop offset="100%" stop-color="#0c1320"/></linearGradient>'
         '<filter id="shadow" x="-25%" y="-25%" width="150%" height="160%">'
         '<feDropShadow dx="0" dy="26" stdDeviation="26" flood-color="#000" flood-opacity="0.55"/></filter>'
         '<filter id="soft" x="-30%" y="-30%" width="160%" height="160%">'
@@ -96,7 +99,27 @@ def defs(extra=""):
     )
 
 
+WALLPAPER_JPG = os.path.join(os.path.dirname(__file__), "..", "src", "assets", "wallpapers", "kali.jpg")
+
+
 def wallpaper():
+    """The desktop backdrop.
+
+    The shipped Kali wallpaper is embedded as a data URI so the illustration
+    shows the real asset instead of an approximation of it. Everything on top of
+    it (windows, icons, panel) is still drawn from the design tokens.
+    """
+    if os.path.exists(WALLPAPER_JPG):
+        with open(WALLPAPER_JPG, "rb") as handle:
+            encoded = base64.b64encode(handle.read()).decode("ascii")
+        return (
+            f'<image x="0" y="0" width="{W}" height="{H}" preserveAspectRatio="xMidYMid slice" '
+            f'href="data:image/jpeg;base64,{encoded}"/>'
+            + rect(0, 0, W, H, "url(#glow)", opacity=0.35)
+            + "".join(
+                path(f"M0 {y} H{W}", stroke="#ffffff", sw=1, opacity=0.012) for y in range(60, H, 60)
+            )
+        )
     return (
         rect(0, 0, W, H, "url(#wall)")
         + rect(0, 0, W, H, "url(#glow)")
@@ -188,10 +211,11 @@ def mini_icon(cx, cy, color, kind):
 def window(x, y, w, h, title, accent=ACCENT, icon="N", body="", controls=True, title_extra=""):
     clip = uid("clip")
     bar = 40
+    radius = 9
     head = (
-        rect(x, y, w, bar, "url(#titlebar)", rx=14)
-        + rect(x, y + bar - 14, w, 14, TITLEBAR, extra="")
-        + rect(x, y, w, h, "none", rx=14, stroke=BORDER)
+        rect(x, y, w, bar, "url(#titlebar)", rx=9)
+        + rect(x, y + bar - 9, w, 9, TITLEBAR, extra="")
+        + rect(x, y, w, h, "none", rx=9, stroke=BORDER)
         + rect(x + 14, y + 12, 16, 16, accent, rx=5)
         + text(x + 22, y + 24, icon, 10, "#04140d", 700, "middle")
         + text(x + 38, y + 25, title, 12, TEXT_2, 600)
@@ -200,7 +224,7 @@ def window(x, y, w, h, title, accent=ACCENT, icon="N", body="", controls=True, t
     if controls:
         for index, color in enumerate(["#4c5970", "#4c5970", "#ff6b81"]):
             head += rect(x + w - 74 + index * 20, y + 17, 10, 10, color, rx=3, opacity=0.85)
-    return f'<g filter="url(#shadow)"><clipPath id="{clip}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="14"/></clipPath>{head}<g clip-path="url(#{clip})">{body}</g>{rect(x, y, w, h, "none", rx=14, stroke=BORDER)}</g>'
+    return f'<g filter="url(#shadow)"><clipPath id="{clip}"><rect x="{x}" y="{y}" width="{w}" height="{h}" rx="9"/></clipPath>{head}<g clip-path="url(#{clip})">{body}</g>{rect(x, y, w, h, "none", rx=9, stroke=BORDER)}</g>'
 
 
 def desktop_icons():
@@ -210,8 +234,8 @@ def desktop_icons():
     for index, (label, glyph, color) in enumerate(items):
         x = 30
         y = 120 + index * 96
-        out.append(rect(x, y, 52, 52, SURFACE_2, rx=14, stroke=BORDER))
-        out.append(rect(x, y, 52, 52, color, rx=14, opacity=0.14))
+        out.append(rect(x, y, 52, 52, "#060b13", rx=10, stroke=color, sw=1.2, opacity=0.95))
+        out.append(rect(x, y, 52, 52, color, rx=10, opacity=0.1))
         out.append(text(x + 26, y + 33, glyph, 18, color, 700, "middle"))
         out.append(text(x + 26, y + 72, label, 11, TEXT_2, 600, "middle"))
     return "".join(out)
@@ -219,9 +243,11 @@ def desktop_icons():
 
 def panel():
     x, y, w, h = 16, H - 72, W - 32, 56
-    out = [f'<g filter="url(#soft)">', rect(x, y, w, h, "#0e1622", rx=18, opacity=0.97), rect(x, y, w, h, "none", rx=18, stroke=BORDER)]
+    out = [f'<g filter="url(#soft)">', rect(x, y, w, h, "#060a12", rx=10, opacity=0.98),
+           rect(x, y, w, h, "none", rx=10, stroke=BORDER),
+           rect(x + w * 0.12, y, w * 0.76, 1, "url(#accent)", opacity=0.5)]
     # start button
-    out.append(rect(x + 10, y + 9, 122, h - 18, ACCENT, rx=12, opacity=0.14))
+    out.append(rect(x + 10, y + 9, 122, h - 18, ACCENT, rx=6, opacity=0.16))
     out.append(circle(x + 32, y + h / 2, 13, "url(#accent)"))
     out.append(text(x + 32, y + h / 2 + 5, "N", 14, "#04140d", 800, "middle"))
     out.append(text(x + 52, y + h / 2 + 4, "Applications", 12, TEXT_1, 600))
@@ -230,14 +256,14 @@ def panel():
             ("#5aa9ff", "photos"), ("#f2b64c", "weather")]
     for index, (color, kind) in enumerate(apps):
         cx = x + 176 + index * 40
-        out.append(rect(cx - 14, y + 14, 28, 28, SURFACE_3, rx=9, stroke=BORDER_SOFT))
-        out.append(rect(cx - 14, y + 14, 28, 28, color, rx=9, opacity=0.13))
+        out.append(rect(cx - 14, y + 14, 28, 28, "#0a1220", rx=6, stroke=color, sw=1, opacity=0.9))
+        out.append(rect(cx - 14, y + 14, 28, 28, color, rx=6, opacity=0.12))
         out.append(mini_icon(cx, y + 28, color, kind))
     out.append(rect(x + 372, y + 16, 1, h - 32, "#ffffff", opacity=0.08))
     # window buttons
     for index, (label, color) in enumerate([("Code — hello.ts", "#4aa8ff"), ("Games", "#a586ff")]):
         bx = x + 386 + index * 156
-        out.append(rect(bx, y + 13, 148, h - 26, SURFACE_2, rx=10, stroke=BORDER_SOFT))
+        out.append(rect(bx, y + 13, 148, h - 26, SURFACE_2, rx=6, stroke=BORDER_SOFT))
         out.append(rect(bx + 9, y + 21, 18, 18, color, rx=5, opacity=0.22))
         out.append(text(bx + 18, y + 34, "•", 10, color, 700, "middle"))
         out.append(text(bx + 33, y + 34, label, 10.5, TEXT_2, 500))
@@ -332,19 +358,19 @@ def code_window(x, y, w, h):
     # code lines
     code = [
         [("// Welcome to NOVA Code", "#5f7085")],
-        [("import", "#a78bfa"), (" { createStore } ", "#c9d5e5"), ("from", "#a78bfa"), (" ", "#c9d5e5"), ("'nova/core'", "#8fe3b6"), (";", "#c9d5e5")],
+        [("import", "#a78bfa"), (" { createStore } ", "#c9d5e5"), ("from", "#a78bfa"), (" ", "#c9d5e5"), ("'nova/core'", "#7fe3d0"), (";", "#c9d5e5")],
         [],
         [("interface", "#a78bfa"), (" Greeting {", "#c9d5e5")],
         [("  name", "#7dd3fc"), (": ", "#c9d5e5"), ("string", "#a78bfa"), (";", "#c9d5e5")],
-        [("  language", "#7dd3fc"), (": ", "#c9d5e5"), ("'en'", "#8fe3b6"), (" | ", "#c9d5e5"), ("'fa'", "#8fe3b6"), (";", "#c9d5e5")],
+        [("  language", "#7dd3fc"), (": ", "#c9d5e5"), ("'en'", "#7fe3d0"), (" | ", "#c9d5e5"), ("'fa'", "#7fe3d0"), (";", "#c9d5e5")],
         [("}", "#c9d5e5")],
         [],
         [("export", "#a78bfa"), (" function", "#a78bfa"), (" greet", "#6fc9ff"), ("({ name, language }: Greeting) {", "#c9d5e5")],
-        [("  const", "#a78bfa"), (" table ", "#c9d5e5"), ("= ", "#c9d5e5"), ("{ en: ", "#c9d5e5"), ("'Hello'", "#8fe3b6"), (", fa: ", "#c9d5e5"), ("'Salam'", "#8fe3b6"), (" };", "#c9d5e5")],
-        [("  return", "#a78bfa"), (" `${table[language]}, ${name}!`;", "#8fe3b6")],
+        [("  const", "#a78bfa"), (" table ", "#c9d5e5"), ("= ", "#c9d5e5"), ("{ en: ", "#c9d5e5"), ("'Hello'", "#7fe3d0"), (", fa: ", "#c9d5e5"), ("'Salam'", "#7fe3d0"), (" };", "#c9d5e5")],
+        [("  return", "#a78bfa"), (" `${table[language]}, ${name}!`;", "#7fe3d0")],
         [("}", "#c9d5e5")],
         [],
-        [("console", "#c9d5e5"), (".", "#c9d5e5"), ("log", "#6fc9ff"), ("(", "#c9d5e5"), ("greet", "#6fc9ff"), ("({ name: ", "#c9d5e5"), ("'NOVA'", "#8fe3b6"), (", language: ", "#c9d5e5"), ("'fa'", "#8fe3b6"), (" }));", "#c9d5e5")],
+        [("console", "#c9d5e5"), (".", "#c9d5e5"), ("log", "#6fc9ff"), ("(", "#c9d5e5"), ("greet", "#6fc9ff"), ("({ name: ", "#c9d5e5"), ("'NOVA'", "#7fe3d0"), (", language: ", "#c9d5e5"), ("'fa'", "#7fe3d0"), (" }));", "#c9d5e5")],
     ]
     gutter_x = x + 238 + 16
     text_x = x + 238 + 58
@@ -361,7 +387,7 @@ def code_window(x, y, w, h):
             f'xml:space="preserve">{spans}</text>'
         )
     # status bar
-    body.append(rect(x, y + h - 26, w, 26, "#0f2a24"))
+    body.append(rect(x, y + h - 26, w, 26, "#08192b"))
     body.append(text(x + 250, y + h - 9, "~/Projects/hello.ts", 9.5, TEXT_2))
     for index, value in enumerate(["Ln 9, Col 3", "14 lines", "TypeScript", "Saved"]):
         body.append(text(x + w - 380 + index * 92, y + h - 9, value, 9.5, TEXT_2))
@@ -618,10 +644,10 @@ def docs_window(x, y, w, h):
     body.append(text(mx, y + 476, "| Example ||", 1, TEXT_3))
     # code block
     body.append(rect(mx - 10, y + 474, w - 300, 76, "#080c13", rx=10, stroke=BORDER))
-    body.append(text(mx + 2, y + 496, "$ ls ~/Projects | grep .ts | wc -l", 10, "#8fe3b6", family=MONO))
+    body.append(text(mx + 2, y + 496, "$ ls ~/Projects | grep .ts | wc -l", 10, "#7fe3d0", family=MONO))
     body.append(text(mx + 2, y + 514, "3", 10, TEXT_1, family=MONO))
-    body.append(text(mx + 2, y + 532, "$ echo \"hello\" > notes.txt", 10, "#8fe3b6", family=MONO))
-    return window(x, y, w, h, "Documentation — README", "#8fe3b6", "¶", "".join(body))
+    body.append(text(mx + 2, y + 532, "$ echo \"hello\" > notes.txt", 10, "#7fe3d0", family=MONO))
+    return window(x, y, w, h, "Documentation — README", "#7fe3d0", "¶", "".join(body))
 
 
 TERMINAL_LINES = [
@@ -637,7 +663,7 @@ def terminal_window(x, y, w, h):
     body.append(rect(x, y + 40, w, 28, "#0a0e16"))
     body.append(text(x + 14, y + 59, "nova-sh", 9.5, TEXT_3, 600))
     body.append(text(x + 74, y + 59, "simulated · no kernel", 9, TEXT_3))
-    body.append(rect(x, y + h - 22, w, 22, "#0f2a24"))
+    body.append(rect(x, y + h - 22, w, 22, "#08192b"))
     body.append(text(x + 14, y + h - 7, "bash · ~/", 8.5, TEXT_2))
     row = 0
     for prompt, command, output in TERMINAL_LINES:
@@ -656,7 +682,7 @@ def terminal_window(x, y, w, h):
         f'<text x="{x + 16}" y="{y + h - 44}" font-family="{MONO}" font-size="10.5">'
         f'<tspan fill="{ACCENT}">demo@nova:~$ </tspan><tspan fill="{TEXT_1}">▌</tspan></text>'
     )
-    return window(x, y, w, h, "Terminal", "#8fe3b6", "❯", "".join(body))
+    return window(x, y, w, h, "Terminal", "#7fe3d0", "❯", "".join(body))
 
 
 def layouts_popover(x, y, w=246):
@@ -818,12 +844,18 @@ def tablet_frame(x, y, w, h):
         out.append(rect(px + 14, ry + 8, 13, 13, ACCENT if active else TEXT_3, rx=4, opacity=0.55))
         out.append(text(px + 36, ry + 20, label, 10, TEXT_1 if active else TEXT_2, 600 if active else 400))
         out.append(text(px + pw - 16, ry + 20, group, 8.5, TEXT_3, 400, "end"))
-    for index in range(8):
+    # The panel collapses to an icon rail: same neon outlines, no labels.
+    rail = [("#4aa8ff", "code"), ("#a586ff", "games"), ("#4fd6b8", "music"),
+            ("#5aa9ff", "photos"), ("#f2b64c", "weather"), ("#7fe3d0", "bell"),
+            ("#ff8f6b", "sun"), ("#5aa9ff", "wifi")]
+    for index, (color, kind) in enumerate(rail):
         col, row = index % 4, index // 4
         cxp = x + 26 + col * 88
         cyp = y + h - 172 + row * 62
-        out.append(rect(cxp, cyp, 64, 52, SURFACE_2, rx=10, stroke=BORDER_SOFT))
-        out.append(rect(cxp + 18, cyp + 10, 28, 28, ACCENT, rx=9, opacity=0.14))
+        out.append(rect(cxp, cyp, 64, 52, "#060b13", rx=9, stroke=BORDER_SOFT))
+        out.append(rect(cxp + 18, cyp + 8, 28, 28, "#0a1220", rx=6, stroke=color, sw=1, opacity=0.9))
+        out.append(rect(cxp + 18, cyp + 8, 28, 28, color, rx=6, opacity=0.12))
+        out.append(mini_icon(cxp + 32, cyp + 22, color, kind))
     out.append(rect(x + 10, y + h - 42, w - 20, 32, "#0e1622", rx=11, stroke=BORDER))
     out.append(circle(x + 28, y + h - 26, 8, "url(#accent)"))
     out.append(text(x + 28, y + h - 22, "N", 8, "#04140d", 800, "middle"))

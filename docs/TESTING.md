@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 249 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
+npm run test        # Vitest: 254 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -157,7 +157,11 @@ dismisses either surface if one appears anyway, so the helper stays honest.
   redirection effects, `grep`/`head`/`wc`/`sort`/`uniq`, `cd`, `rm -r`, unknown commands), the
   Markdown parser (blocks, inline tokens, plain text, slugs, malformed input), local usage counters,
   Writer/Impress templates and the four handbooks the Documentation app ships.
-- `tests/round4-ui.test.tsx` (21) — the terminal never opens a second window when you press Enter
+- `tests/round4-ui.test.tsx` (26) — the Kali-inspired skin (Kali default theme, `blue` accent and
+  `wallpaper-kali` default wallpaper, the dragon bitmap mounted on `.wallpaper`, every catalogue
+  wallpaper resolving to a bitmap + thumbnail or a gradient class, `<html>` reflecting
+  `data-theme`/`data-accent`/`--accent`, and light/dark still selectable); the terminal never opens a
+  second window when you press Enter
   (input guards, singleton window, `forceNew`/footer escape hatch), launch buttons release focus,
   Code's position on the main screen (second desktop icon, first
   eight dock favourites, opens on double-click, and the v2→v4 launcher migration that promotes it

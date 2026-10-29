@@ -10,6 +10,7 @@ coverage
 
 # research scratch (image search results, never shipped)
 image-search/
+.tmp-art/
 
 # Playwright
 playwright-report/

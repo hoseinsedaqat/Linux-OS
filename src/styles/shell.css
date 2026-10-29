@@ -3861,3 +3861,287 @@ html[dir='rtl'] .login__footer .select {
     padding: 8px;
   }
 }
+
+/* ==================================================================
+   Kali-inspired skin
+   ------------------------------------------------------------------
+   Everything here is scoped to [data-theme='kali'], so the classic
+   dark and light themes keep their glass look. The idea is a flat
+   security-workstation surface: solid panels instead of floating
+   pills, squarer geometry, a hairline of neon where surfaces meet,
+   and neon outlines on icons instead of glossy gradient tiles.
+   ================================================================== */
+
+/* Wallpaper fallback: shown while the image decodes, and if it fails. */
+.wallpaper--kali {
+  background-color: #04060b;
+  background-image:
+    radial-gradient(64% 52% at 74% 46%, rgba(47, 180, 255, 0.26), transparent 68%),
+    radial-gradient(46% 42% at 88% 18%, rgba(79, 227, 255, 0.16), transparent 70%),
+    linear-gradient(158deg, #05080f 0%, #071120 52%, #03060c 100%);
+}
+
+[data-theme='kali'] .panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  box-shadow:
+    0 12px 30px -18px rgba(0, 0, 0, 0.95),
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(79, 227, 255, 0.12) inset;
+}
+
+/* A single neon hairline along the working edge of the panel. */
+[data-theme='kali'] .panel::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(79, 227, 255, 0.5), transparent);
+}
+
+[data-theme='kali'] .panel--bottom::after,
+[data-theme='kali'] .panel--top::after {
+  left: 12%;
+  right: 12%;
+  height: 1px;
+}
+
+[data-theme='kali'] .panel--bottom::after {
+  top: -1px;
+}
+
+[data-theme='kali'] .panel--top::after {
+  bottom: -1px;
+}
+
+[data-theme='kali'] .panel--left::after,
+[data-theme='kali'] .panel--right::after {
+  top: 12%;
+  bottom: 12%;
+  width: 1px;
+}
+
+[data-theme='kali'] .panel--left::after {
+  right: -1px;
+}
+
+[data-theme='kali'] .panel--right::after {
+  left: -1px;
+}
+
+[data-theme='kali'] .panel__button {
+  border-radius: 6px;
+  color: var(--text-2);
+}
+
+[data-theme='kali'] .panel__button:hover {
+  background: rgba(79, 227, 255, 0.09);
+  color: var(--text-1);
+}
+
+[data-theme='kali'] .panel__button.is-active {
+  background: rgba(47, 180, 255, 0.18);
+  color: var(--accent-2);
+  box-shadow: 0 0 0 1px rgba(79, 227, 255, 0.28) inset;
+}
+
+/* Running apps get a sharp neon tab, not a soft dot. */
+[data-theme='kali'] .panel__button.is-open::after,
+[data-theme='kali'] .panel__window-btn.is-active::after {
+  width: 16px;
+  height: 2px;
+  border-radius: 0;
+  box-shadow: 0 0 10px rgba(79, 227, 255, 0.9);
+}
+
+[data-theme='kali'] .panel__sep {
+  background: var(--border-2);
+}
+
+[data-theme='kali'] .window {
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-window);
+  background: var(--window-bg);
+}
+
+[data-theme='kali'] .window.is-active {
+  border-color: rgba(79, 227, 255, 0.36);
+  box-shadow:
+    0 0 0 1px rgba(47, 180, 255, 0.16),
+    0 30px 70px -34px rgba(0, 0, 0, 0.96),
+    0 8px 24px -16px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme='kali'] .window::before {
+  background: linear-gradient(90deg, transparent, rgba(79, 227, 255, 0.85), transparent);
+}
+
+[data-theme='kali'] .window__titlebar {
+  background: var(--window-header);
+  border-bottom: 1px solid var(--border-2);
+  backdrop-filter: none;
+}
+
+[data-theme='kali'] .window__title {
+  letter-spacing: 0.01em;
+  color: var(--text-1);
+}
+
+[data-theme='kali'] .window__control {
+  border-radius: 4px;
+}
+
+[data-theme='kali'] .window__control:hover {
+  background: rgba(79, 227, 255, 0.12);
+}
+
+[data-theme='kali'] .window__control--close:hover {
+  background: rgba(255, 92, 122, 0.24);
+}
+
+/* Desktop icons: flat dark tiles with a neon outline in the app's colour. */
+[data-theme='kali'] .app-tile {
+  border-radius: 9px;
+  background-image:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.28)),
+    radial-gradient(120% 100% at 30% 0%, var(--tile-glow-soft, rgba(255, 255, 255, 0.08)), transparent 70%);
+  background-color: rgba(6, 11, 19, 0.92);
+  box-shadow:
+    0 0 0 1px var(--tile-glow, rgba(255, 255, 255, 0.18)),
+    0 0 14px -4px var(--tile-glow, rgba(255, 255, 255, 0.2)),
+    0 6px 14px -10px rgba(0, 0, 0, 0.9);
+}
+
+[data-theme='kali'] .app-tile .app-tile__glyph {
+  color: var(--tile-color, var(--accent));
+  filter: drop-shadow(0 0 6px var(--tile-glow, rgba(255, 255, 255, 0.4)));
+}
+
+[data-theme='kali'] .desktop-icon .app-tile {
+  border-radius: 10px;
+}
+
+[data-theme='kali'] .desktop-icon:hover .app-tile {
+  box-shadow:
+    0 0 0 1px var(--tile-glow, rgba(255, 255, 255, 0.3)),
+    0 0 22px -2px var(--tile-glow, rgba(255, 255, 255, 0.34)),
+    0 8px 18px -10px rgba(0, 0, 0, 0.9);
+}
+
+[data-theme='kali'] .desktop-icon {
+  border-radius: 8px;
+}
+
+[data-theme='kali'] .desktop-icon:hover {
+  background: rgba(79, 227, 255, 0.07);
+}
+
+[data-theme='kali'] .desktop-icon.is-selected {
+  background: rgba(47, 180, 255, 0.16);
+  border-color: rgba(79, 227, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(79, 227, 255, 0.22);
+}
+
+[data-theme='kali'] .desktop-icon__label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.01em;
+}
+
+/* Menus, popovers and dialogs share the flat navy treatment. */
+[data-theme='kali'] .appmenu,
+[data-theme='kali'] .context-menu,
+[data-theme='kali'] .popover,
+[data-theme='kali'] .modal,
+[data-theme='kali'] .command-palette,
+[data-theme='kali'] .quick-settings,
+[data-theme='kali'] .notifications-panel {
+  background: var(--menu-bg);
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  backdrop-filter: none;
+  box-shadow: 0 24px 60px -28px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='kali'] .context-menu__item,
+[data-theme='kali'] .appmenu__cat,
+[data-theme='kali'] .appmenu__tile {
+  border-radius: 6px;
+}
+
+[data-theme='kali'] .appmenu__cat.is-active {
+  background: rgba(47, 180, 255, 0.16);
+  color: var(--accent-2);
+}
+
+[data-theme='kali'] .btn {
+  border-radius: 6px;
+}
+
+[data-theme='kali'] .btn--primary {
+  background: linear-gradient(180deg, #34b9ff, #1f93e0);
+  border-color: rgba(79, 227, 255, 0.5);
+  color: #04121c;
+  box-shadow: 0 0 16px -6px rgba(47, 180, 255, 0.8);
+}
+
+[data-theme='kali'] .input,
+[data-theme='kali'] .select,
+[data-theme='kali'] textarea {
+  border-radius: 6px;
+  border-color: var(--input-border);
+  background: var(--input-bg);
+}
+
+[data-theme='kali'] .input:focus,
+[data-theme='kali'] .select:focus,
+[data-theme='kali'] textarea:focus {
+  border-color: rgba(79, 227, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(47, 180, 255, 0.18);
+}
+
+/* Boot and login read as one firmware screen in Kali blue. */
+[data-theme='kali'] .boot,
+[data-theme='kali'] .login {
+  background:
+    radial-gradient(80% 60% at 50% 0%, rgba(47, 180, 255, 0.12), transparent 62%),
+    #04060b;
+}
+
+[data-theme='kali'] .boot__title,
+[data-theme='kali'] .login__clock {
+  text-shadow: 0 0 26px rgba(79, 227, 255, 0.35);
+}
+
+[data-theme='kali'] .boot__meter-fill,
+[data-theme='kali'] .boot__progress-fill {
+  background: linear-gradient(90deg, #2fb4ff, #4fe3ff);
+  box-shadow: 0 0 14px rgba(47, 180, 255, 0.7);
+}
+
+[data-theme='kali'] .login__card {
+  background: rgba(6, 11, 19, 0.86);
+  border: 1px solid var(--border-2);
+  border-radius: 12px;
+  backdrop-filter: blur(18px);
+}
+
+/* Scrollbars follow the accent so long lists still feel themed. */
+[data-theme='kali'] ::-webkit-scrollbar-thumb {
+  background: rgba(79, 227, 255, 0.22);
+}
+
+[data-theme='kali'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 227, 255, 0.34);
+}
+
+[data-theme='kali'] * {
+  scrollbar-color: rgba(79, 227, 255, 0.26) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme='kali'] .app-tile {
+    transition: none;
+  }
+}
