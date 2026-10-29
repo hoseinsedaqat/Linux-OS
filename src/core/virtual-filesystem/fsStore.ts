@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { FSNode, FSNodeKind } from '@/types';
 import { fsDelete, fsGetAll, fsPut, fsPutMany, fsClear, isStorageUnavailable, getSchemaVersion, setSchemaVersion, SCHEMA_VERSION } from '@/core/persistence/db';
 import { createSeedTree } from './seed';
+import { reconcileStarterFiles } from './starterFiles';
 import {
   FOLDER_IDS,
   collectDescendants,
@@ -82,6 +83,18 @@ export const useFiles = create<FilesState>((set, get) => ({
         });
       }
       if (previousVersion !== SCHEMA_VERSION) await setSchemaVersion(SCHEMA_VERSION);
+      // Older profiles can hold the Projects samples blank (or not at all).
+      // Fill the gaps so the editor always opens on real code, and never
+      // overwrite a file the user has written in.
+      if (map[FOLDER_IDS.projects]) {
+        const repaired = reconcileStarterFiles(map, FOLDER_IDS.projects);
+        if (repaired.length > 0) {
+          await fsPutMany(repaired);
+          repaired.forEach((node) => {
+            map[node.id] = node;
+          });
+        }
+      }
       set({ nodes: map, ready: true, error: null });
     } catch (error) {
       const seed = createSeedTree();

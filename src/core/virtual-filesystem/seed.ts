@@ -1,6 +1,7 @@
 import type { FSNode, FSNodeKind } from '@/types';
 import type { DeckModel, Workbook, WriterDoc } from '@/types/documents';
 import { FOLDER_IDS } from './fsUtils';
+import { starterProjectNodes } from './starterFiles';
 
 const NOW = Date.now();
 const DAY = 86_400_000;
@@ -198,6 +199,8 @@ export function createSeedTree(): FSNode[] {
     folder(FOLDER_IDS.videos, 'dir-demo', 'Videos'),
     folder(FOLDER_IDS.notes, 'dir-demo', 'Notes'),
     folder(FOLDER_IDS.projects, FOLDER_IDS.documents, 'Projects'),
+    // Four readable samples so the editor is never empty on first open.
+    ...starterProjectNodes(FOLDER_IDS.projects),
     folder(FOLDER_IDS.usr, FOLDER_IDS.root, 'usr', { system: true }),
     folder(FOLDER_IDS.usrShare, FOLDER_IDS.usr, 'share', { system: true }),
     folder(FOLDER_IDS.usrShareNova, FOLDER_IDS.usrShare, 'nova', { system: true }),

@@ -21,7 +21,7 @@
  * does not start with this string, so a new version is what evicts the old shell
  * instead of leaving users on a stale index.html.
  */
-const VERSION = 'nova-v5';
+const VERSION = 'nova-v6';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const scope = self.registration.scope;

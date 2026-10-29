@@ -27,7 +27,6 @@ import { cn } from '@/utils';
 import {
   CODE_ROOTS,
   LANGUAGE_LABEL,
-  STARTER_FILES,
   caretPosition,
   detectLanguage,
   findInFile,
@@ -131,16 +130,6 @@ export function CodeApp({ win }: AppWindowProps) {
     if (node && node.kind !== 'folder') openFile(node);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [win.payload?.path, win.payload?.folderPath]);
-
-  /* First run: seed the project folder with readable starter files. */
-  useEffect(() => {
-    if (!projectFolder || root !== '~/Projects') return;
-    if (projectFiles.length > 0) return;
-    Object.entries(STARTER_FILES).forEach(([name, content]) => {
-      createFile(projectFolder.id, name, { content });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectFolder?.id, projectFiles.length]);
 
   const closeTab = (id: string) => {
     setTabs((current) => current.filter((tab) => tab !== id));

@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import { Desktop } from '@/components/desktop/Desktop';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
+import { FOLDER_IDS } from '@/core/virtual-filesystem/fsUtils';
+import { STARTER_FILE_CONTENT } from '@/core/virtual-filesystem/starterFiles';
 import { useSettings } from '@/core/themes/settingsStore';
 import {
   DEFAULT_DESKTOP_APPS,
@@ -277,6 +279,65 @@ describe('Code is reachable from the main screen', () => {
     const migrated = migrateLauncherState(current, 4);
     expect(migrated.desktopApps).toEqual(['files']);
     expect(migrated.favorites).toEqual(['files']);
+  });
+});
+
+describe('the four Projects samples ship with real code', () => {
+  it('seeds readable sources into ~/Projects on a fresh profile', async () => {
+    const projectNodes = Object.values(useFiles.getState().nodes).filter(
+      (node) => node.parentId === FOLDER_IDS.projects && node.kind !== 'folder',
+    );
+    const names = projectNodes.map((node) => node.name).sort();
+    expect(names).toEqual(['data.json', 'hello.ts', 'notes.md', 'theme.css']);
+    for (const node of projectNodes) {
+      expect((node.content ?? '').trim().length).toBeGreaterThan(40);
+    }
+    // Same four samples the editor advertises, from one source of truth.
+    expect(Object.keys(STARTER_FILE_CONTENT).sort()).toEqual(names);
+  });
+
+  it('repairs a blank legacy profile without touching edited files', async () => {
+    const state = useFiles.getState();
+    const samples = Object.values(state.nodes).filter((node) => node.parentId === FOLDER_IDS.projects);
+    for (const node of samples) {
+      state.updateContent(node.id, node.name === 'notes.md' ? '# my own notes\n' : '   ');
+    }
+
+    await useFiles.getState().init();
+
+    const after = Object.values(useFiles.getState().nodes).filter(
+      (node) => node.parentId === FOLDER_IDS.projects,
+    );
+    expect(after).toHaveLength(4);
+    expect(after.find((node) => node.name === 'notes.md')!.content).toBe('# my own notes\n');
+    expect(after.find((node) => node.name === 'hello.ts')!.content).toContain('export function greet');
+    expect(after.find((node) => node.name === 'data.json')!.content).toContain('"version"');
+  });
+
+  it('opens hello.ts in the editor with code in the textarea', async () => {
+    desktop();
+    await waitFor(() => {
+      expect(document.querySelector('.desktop__canvas')).toBeTruthy();
+    });
+    act(() => {
+      useWindows.getState().openApp('code');
+    });
+    const row = await waitFor(() => {
+      const node = Array.from(document.querySelectorAll('.code__file')).find((item) =>
+        (item.textContent ?? '').includes('hello.ts'),
+      ) as HTMLElement | undefined;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.click(row);
+
+    const editor = await waitFor(() => {
+      const node = document.querySelector('.code__input') as HTMLTextAreaElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(editor.value).toContain('export function greet');
+    expect(editor.value.length).toBeGreaterThan(200);
   });
 });
 
