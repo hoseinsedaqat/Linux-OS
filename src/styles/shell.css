@@ -4086,9 +4086,14 @@ html[dir='rtl'] .login__footer .select {
   box-shadow: 0 0 16px -6px rgba(47, 180, 255, 0.8);
 }
 
+/* Form controls get the flat plate. Editors that paint their own surface are
+   excluded: `.code__input` is a transparent layer sitting on top of the
+   highlighted <pre> mirror, so an opaque background here would hide every
+   character the user types. */
 [data-theme='kali'] .input,
 [data-theme='kali'] .select,
-[data-theme='kali'] textarea {
+[data-theme='kali'] .textarea,
+[data-theme='kali'] textarea:not(.code__input):not(.notes__body) {
   border-radius: 6px;
   border-color: var(--input-border);
   background: var(--input-bg);
@@ -4096,9 +4101,19 @@ html[dir='rtl'] .login__footer .select {
 
 [data-theme='kali'] .input:focus,
 [data-theme='kali'] .select:focus,
-[data-theme='kali'] textarea:focus {
+[data-theme='kali'] .textarea:focus,
+[data-theme='kali'] textarea:not(.code__input):not(.notes__body):focus {
   border-color: rgba(79, 227, 255, 0.6);
   box-shadow: 0 0 0 2px rgba(47, 180, 255, 0.18);
+}
+
+/* Belt and braces for the two self-painting editors: they stay transparent,
+   un-bordered and un-shadowed whatever the skin does to plain textareas. */
+[data-theme='kali'] .code__input,
+[data-theme='kali'] .notes__body {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 /* Boot and login read as one firmware screen in Kali blue. */

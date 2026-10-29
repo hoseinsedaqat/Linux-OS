@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Desktop } from '@/components/desktop/Desktop';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
@@ -338,6 +340,60 @@ describe('the four Projects samples ship with real code', () => {
     });
     expect(editor.value).toContain('export function greet');
     expect(editor.value.length).toBeGreaterThan(200);
+  });
+});
+
+describe('typed code is always visible in the editor', () => {
+  const read = (file: string) => readFileSync(join(process.cwd(), file), 'utf8');
+
+  it('the Kali skin never paints an opaque plate under the mirrored editor', () => {
+    const shell = read('src/styles/shell.css');
+    // The code textarea is transparent and sits on top of the highlighted <pre>
+    // mirror; an opaque background on it hides every character the user types.
+    expect(shell).toContain("textarea:not(.code__input):not(.notes__body)");
+    expect(shell).not.toMatch(/\[data-theme='kali'\] textarea\s*[,{]/);
+    expect(shell).toMatch(/\[data-theme='kali'\] \.code__input[^{]*\{[^}]*background:\s*transparent/);
+  });
+
+  it('keeps the mirror contract: transparent input, painted highlight layer', () => {
+    const code = read('src/styles/code.css');
+    expect(code).toMatch(/\.code__input \{[^}]*background:\s*transparent/);
+    expect(code).toMatch(/\.code__input \{[^}]*color:\s*transparent/);
+    expect(code).toMatch(/\.code__highlight \{[^}]*color:\s*#c9d5e5/);
+  });
+
+  it('re-renders the highlighted mirror on every keystroke', async () => {
+    desktop();
+    await waitFor(() => {
+      expect(document.querySelector('.desktop__canvas')).toBeTruthy();
+    });
+    act(() => {
+      useWindows.getState().openApp('code');
+    });
+
+    const row = await waitFor(() => {
+      const node = Array.from(document.querySelectorAll('.code__file')).find((item) =>
+        (item.textContent ?? '').includes('hello.ts'),
+      ) as HTMLElement | undefined;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.click(row);
+
+    const editor = await waitFor(() => {
+      const node = document.querySelector('.code__input') as HTMLTextAreaElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    fireEvent.change(editor, { target: { value: 'const answer = 42;\n' } });
+
+    const mirror = await waitFor(() => {
+      const node = document.querySelector('.code__highlight') as HTMLElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(mirror.textContent).toContain('const answer = 42;');
+    expect(mirror.querySelectorAll('span').length).toBeGreaterThan(1);
   });
 });
 
