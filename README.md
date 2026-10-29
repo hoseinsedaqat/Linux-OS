@@ -5,7 +5,7 @@
 **A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
 [![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
-[![Tests](https://img.shields.io/badge/tests-254%20passing-3ddc97?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/tests-257%20passing-3ddc97?style=for-the-badge)](#testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
@@ -196,6 +196,10 @@ persisted best scores.
 
 `Code` is a real editor over the virtual file system, not a textarea with a fancy frame:
 
+- **Four readable samples ship in `~/Projects`** — `hello.ts`, `theme.css`, `notes.md` and
+  `data.json`, seeded into the *virtual file system* (so Files and the terminal see them too) and
+  repaired on boot for older profiles that saved those files blank, without ever overwriting a file
+  you actually wrote in. Deleting them is respected: they do not come back.
 - **Four explorer roots** — `~/Projects`, `~/Notes`, `~/Documents` and the whole home folder. The
   choice is remembered per browser; arrow keys and `Enter` open files, `←` collapses a folder.
 - **Tabs** with per-file dirty dots, `Ctrl+W`-style closing via the tab's `×`, and a guard when you
@@ -320,7 +324,7 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # 254 Vitest tests (jsdom + Testing Library)
+npm run test       # 257 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
 npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
@@ -448,7 +452,7 @@ Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ```
 tsc -b          clean (strict, project references)
-vitest run      254 tests, 13 files, all passing
+vitest run      257 tests, 13 files, all passing
 vite build      production bundle ~165 kB index + lazy app chunks
 ```
 

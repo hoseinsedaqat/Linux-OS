@@ -1,3 +1,5 @@
+import { STARTER_FILE_CONTENT } from '@/core/virtual-filesystem/starterFiles';
+
 /**
  * Code editor helpers: language detection, a tiny tokenizer and cursor maths.
  *
@@ -178,52 +180,11 @@ export function indentSelection(
   };
 }
 
-export const STARTER_FILES: Record<string, string> = {
-  'hello.ts': `// Welcome to NOVA Code — a small, real editor.
-// Everything you save here lands in ~/Projects in the virtual file system.
-
-interface Greeting {
-  name: string;
-  language: 'en' | 'fa';
-}
-
-export function greet({ name, language }: Greeting): string {
-  const table = { en: 'Hello', fa: 'سلام' };
-  return \`\${table[language]}, \${name}!\`;
-}
-
-console.log(greet({ name: 'NOVA', language: 'fa' }));
-`,
-  'theme.css': `:root {
-  --accent: #3ce3a4;
-  --surface-1: #0d121c;
-  --radius-lg: 18px;
-}
-
-.panel {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
-}
-`,
-  'notes.md': `# Project notes
-
-- [x] Boot sequence
-- [x] Window manager
-- [ ] Ship the editor
-
-> Tip: press Ctrl + S to save, and Ctrl + F to search inside the file.
-`,
-  'data.json': `{
-  "name": "nova-linux",
-  "version": "1.0.0",
-  "apps": 23,
-  "offline": true
-}
-`,
-};
+/**
+ * The samples live in the file system (see `core/virtual-filesystem/starterFiles`),
+ * so Code, Files and the terminal all see the same four files.
+ */
+export const STARTER_FILES: Record<string, string> = STARTER_FILE_CONTENT;
 
 /** Folders that can be opened as an editor root (relative to the home folder). */
 export const CODE_ROOTS: Array<{ path: string; label: string }> = [
