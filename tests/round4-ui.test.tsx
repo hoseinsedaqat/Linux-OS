@@ -13,6 +13,14 @@ import {
 import { Panel } from '@/components/taskbar/Panel';
 import { APP_META } from '@/core/apps/appMeta';
 import { saveSession, loadSession } from '@/core/window-manager/session';
+import {
+  WALLPAPERS,
+  WALLPAPER_IMAGES,
+  WALLPAPER_THUMBS,
+  applyTheme,
+  wallpaperClass,
+  wallpaperImage,
+} from '@/core/themes/applyTheme';
 import type { AppId } from '@/types';
 
 function desktop() {
@@ -269,6 +277,61 @@ describe('Code is reachable from the main screen', () => {
     const migrated = migrateLauncherState(current, 4);
     expect(migrated.desktopApps).toEqual(['files']);
     expect(migrated.favorites).toEqual(['files']);
+  });
+});
+
+describe('Kali-inspired skin', () => {
+  it('ships Kali as the default look, accent and wallpaper', () => {
+    const state = useSettings.getState();
+    expect(state.theme).toBe('kali');
+    expect(state.accent).toBe('blue');
+    expect(state.wallpaper).toBe('wallpaper-kali');
+    expect(WALLPAPERS[0].id).toBe('wallpaper-kali');
+  });
+
+  it('paints the Kali wallpaper image behind the desktop', async () => {
+    desktop();
+    const wallpaper = await waitFor(() => {
+      const node = document.querySelector('.wallpaper') as HTMLElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(wallpaper.classList.contains('wallpaper--kali')).toBe(true);
+    // Vite rewrites the import to a hashed asset URL; any URL proves the bitmap
+    // (not just the CSS gradient fallback) is mounted.
+    expect(wallpaper.style.backgroundImage).toMatch(/url\(.*kali.*\.jpg/);
+  });
+
+  it('resolves every catalogue wallpaper to a class or an image', () => {
+    const ids = WALLPAPERS.map((item) => item.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const item of WALLPAPERS) {
+      const imageBacked = Boolean(WALLPAPER_IMAGES[item.id]);
+      if (imageBacked) {
+        // Image wallpapers need a thumbnail for the settings gallery.
+        expect(WALLPAPER_THUMBS[item.id]).toBeTruthy();
+      } else {
+        // Gradient wallpapers still get their `.wallpaper--<name>` class.
+        expect(wallpaperClass(item.id)).toMatch(/^wallpaper--./);
+      }
+    }
+    expect(wallpaperImage('wallpaper-kali')).toMatch(/\.jpg/);
+    expect(wallpaperImage('wallpaper-aurora')).toBeUndefined();
+    expect(wallpaperImage('custom')).toBeUndefined();
+  });
+
+  it('reflects the Kali theme and blue accent on <html>', () => {
+    applyTheme({ ...useSettings.getState(), theme: 'kali', accent: 'blue', language: 'en' });
+    expect(document.documentElement.dataset.theme).toBe('kali');
+    expect(document.documentElement.dataset.accent).toBe('blue');
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#2fb4ff');
+  });
+
+  it('keeps the older dark and light themes selectable', () => {
+    applyTheme({ ...useSettings.getState(), theme: 'light' });
+    expect(document.documentElement.dataset.theme).toBe('light');
+    applyTheme({ ...useSettings.getState(), theme: 'dark' });
+    expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });
 

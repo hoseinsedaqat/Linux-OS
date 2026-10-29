@@ -1,5 +1,7 @@
 import type { SettingsState } from '@/types';
 import { accentHex } from './settingsStore';
+import kaliWallpaper from '@/assets/wallpapers/kali.jpg';
+import kaliWallpaperThumb from '@/assets/wallpapers/kali-thumb.jpg';
 
 /** Reflect the settings store into <html> attributes and CSS custom properties. */
 export function applyTheme(settings: SettingsState): void {
@@ -37,7 +39,8 @@ export function applyTheme(settings: SettingsState): void {
   }
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', settings.theme === 'dark' ? '#05080b' : '#e8edf3');
+  const themeColor = settings.theme === 'light' ? '#e8edf3' : settings.theme === 'kali' ? '#04060b' : '#05080b';
+  if (meta) meta.setAttribute('content', themeColor);
 }
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -52,6 +55,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
 
 /** Wallpaper catalogue — CSS-only backgrounds keep the bundle tiny. */
 export const WALLPAPERS: Array<{ id: string; name: string; description: string; tone: 'dark' | 'light' }> = [
+  { id: 'wallpaper-kali', name: 'Kali Dragon', description: 'Neon dragon over a deep navy mesh', tone: 'dark' },
   { id: 'wallpaper-aurora', name: 'Aurora Mint', description: 'Emerald light over deep midnight', tone: 'dark' },
   { id: 'wallpaper-nebula', name: 'Nebula', description: 'Violet clouds and starlight', tone: 'dark' },
   { id: 'wallpaper-ocean', name: 'Deep Ocean', description: 'Teal currents and blue depth', tone: 'dark' },
@@ -67,4 +71,22 @@ export function wallpaperClass(id: string): string {
   if (id === 'custom') return 'wallpaper--custom';
   const known = WALLPAPERS.some((item) => item.id === id);
   return known ? `wallpaper--${id.replace('wallpaper-', '')}` : 'wallpaper--aurora';
+}
+
+/**
+ * Wallpapers that ship as real images rather than pure CSS gradients.
+ *
+ * The file is imported through Vite, so its URL is hashed and already carries
+ * the deployment base — the same code works at a GitHub Pages sub-path.
+ */
+export const WALLPAPER_IMAGES: Record<string, string> = {
+  'wallpaper-kali': kaliWallpaper,
+};
+
+export const WALLPAPER_THUMBS: Record<string, string> = {
+  'wallpaper-kali': kaliWallpaperThumb,
+};
+
+export function wallpaperImage(id: string): string | undefined {
+  return WALLPAPER_IMAGES[id];
 }

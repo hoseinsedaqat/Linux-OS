@@ -16,6 +16,7 @@ import {
   Palette,
   RotateCcw,
   Shield,
+  Terminal,
   SlidersHorizontal,
   Sun,
   Type,
@@ -25,7 +26,7 @@ import {
 import type { AppWindowProps } from '@/core/apps/types';
 import type { Language, PanelPosition, SettingsState } from '@/types';
 import { accentHex, useSettings } from '@/core/themes/settingsStore';
-import { WALLPAPERS, wallpaperClass } from '@/core/themes/applyTheme';
+import { WALLPAPERS, WALLPAPER_THUMBS, wallpaperClass } from '@/core/themes/applyTheme';
 import { useT } from '@/core/localization/i18n';
 import { useWindows } from '@/core/window-manager/windowsStore';
 import { useFiles } from '@/core/virtual-filesystem/fsStore';
@@ -90,6 +91,7 @@ const SECTIONS: Array<{ group: string; items: Array<{ id: SectionId; label: stri
 ];
 
 const ACCENTS: Array<{ id: SettingsState['accent']; color: string; label: string }> = [
+  { id: 'blue', color: '#2fb4ff', label: 'Kali blue' },
   { id: 'mint', color: '#3ddc97', label: 'Mint' },
   { id: 'sky', color: '#4aa8ff', label: 'Sky' },
   { id: 'violet', color: '#a586ff', label: 'Violet' },
@@ -231,6 +233,7 @@ export function SettingsApp({ win }: AppWindowProps) {
                   value={settings.theme}
                   onChange={(value) => set('theme', value)}
                   options={[
+                    { value: 'kali', label: t('Kali'), icon: Terminal },
                     { value: 'dark', label: t('Dark Mode'), icon: Moon },
                     { value: 'light', label: t('Light Mode'), icon: Sun },
                   ]}
@@ -494,7 +497,18 @@ export function SettingsApp({ win }: AppWindowProps) {
                     notify(t('Wallpaper updated'), { body: wallpaper.name, kind: 'success' });
                   }}
                 >
-                  <span className={cn('wallpaper-card__preview', wallpaperClass(wallpaper.id))} />
+                  <span
+                    className={cn('wallpaper-card__preview', wallpaperClass(wallpaper.id))}
+                    style={
+                      WALLPAPER_THUMBS[wallpaper.id]
+                        ? {
+                            backgroundImage: `url(${WALLPAPER_THUMBS[wallpaper.id]})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }
+                        : undefined
+                    }
+                  />
                   <span className="wallpaper-card__name">{wallpaper.name}</span>
                   <span className="wallpaper-card__desc">{wallpaper.description}</span>
                 </button>
@@ -521,7 +535,7 @@ export function SettingsApp({ win }: AppWindowProps) {
                 <button
                   className="btn"
                   onClick={() => {
-                    set('wallpaper', 'wallpaper-aurora');
+                    set('wallpaper', 'wallpaper-kali');
                     set('customWallpaper', null);
                   }}
                 >

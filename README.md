@@ -5,7 +5,7 @@
 **A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
 [![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
-[![Tests](https://img.shields.io/badge/tests-249%20passing-3ddc97?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/tests-254%20passing-3ddc97?style=for-the-badge)](#testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
@@ -28,6 +28,7 @@ public APIs the search engine and the weather app query on your behalf.
 
 - [What this is (and is not)](#what-this-is-and-is-not)
 - [Highlights](#highlights)
+- [Design language: Kali-inspired](#design-language-kali-inspired)
 - [New in round 4](#new-in-round-4)
 - [Screens](#screens)
 - [Applications](#applications)
@@ -53,8 +54,8 @@ public APIs the search engine and the weather app query on your behalf.
 
 NOVA Linux is a **desktop environment simulator**: a web application that behaves like a small,
 polished Linux distribution. It has a boot sequence, a login screen, a window manager, a panel with
-workspaces, twenty applications, a virtual file system persisted in IndexedDB, and a light/dark
-theme engine with a custom accent colour studio.
+workspaces, twenty applications, a virtual file system persisted in IndexedDB, and a three-way
+theme engine — a Kali-inspired default plus classic dark and light — with a custom accent studio.
 
 It is **not** a Linux kernel, a VM, or a remote desktop. Nothing is executed natively, no real file
 or hardware is touched, and no password is ever collected or stored. Every place where that
@@ -86,6 +87,31 @@ network calls the search engine and weather app make to public, keyless, CORS-en
   reduced-motion support in every animated surface, high-contrast mode, UI/text scaling.
 - **Bilingual.** English ⇄ فارسی with a complete RTL flip, Persian calendar formatting and a
   Vazirmatn font stack.
+
+---
+
+## Design language: Kali-inspired
+
+The default look borrows the visual grammar of a security workstation — **Kali Linux** — without
+copying its artwork:
+
+- **Deep navy, one signal colour.** Surfaces sit between `#04060b` and `#0b0f19`; the accent is a
+  single electric blue (`#2fb4ff`) with a cyan companion (`#4fe3ff`). Nothing else competes.
+- **Hairlines instead of glass.** Panels, menus and title bars are flat plates with a 1 px
+  `rgba(79,227,255,0.2)` edge and one neon hairline along the working edge, replacing the frosted
+  cards of the classic dark theme.
+- **Sharper geometry.** Radii drop to 4–11 px (windows 9 px), so the dock, tabs and dialogs read as
+  tools rather than pills.
+- **Neon-outlined icons.** App tiles are dark plates with an outline and glow in the app's own
+  colour instead of glossy gradient squares.
+- **The Kali dragon wallpaper.** A generated low-poly dragon over a navy hex mesh ships as the
+  default background on the login screen and the desktop (`src/assets/wallpapers/kali.jpg`, imported
+  through Vite so it is base-path safe), with a CSS gradient fallback painted underneath while it
+  decodes.
+
+Everything is still driven by CSS variables in `src/styles/tokens.css`, scoped to
+`[data-theme='kali']` in `src/styles/shell.css`, so **Dark** and **Light** remain one click away in
+Settings → Appearance, and the accent studio still overrides the blue for anyone who wants their own.
 
 ---
 
@@ -135,9 +161,11 @@ persisted best scores.
 ![Responsive](docs/screenshots/04-responsive.png)
 
 > The images above are **illustrations drawn from the project's own design tokens** (colours,
-> gradients, window chrome, spacing) by `tools/make_previews.py`, committed as SVG + PNG. They are
-> generated from the same palette the app uses, but they are not browser screenshots — the sandbox
-> that builds this project has no browser. Open the live demo for the real thing.
+> gradients, window chrome, spacing) by `tools/make_previews.py`, committed as SVG + PNG. The only
+> real asset in them is the wallpaper: the script embeds `src/assets/wallpapers/kali.jpg` itself, so
+> the backdrop is exactly what ships. Everything drawn on top is generated from the same palette the
+> app uses, but these are not browser screenshots — the sandbox that builds this project has no
+> browser. Open the live demo for the real thing.
 
 ---
 
@@ -292,7 +320,7 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # 249 Vitest tests (jsdom + Testing Library)
+npm run test       # 254 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
 npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
@@ -420,7 +448,7 @@ Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ```
 tsc -b          clean (strict, project references)
-vitest run      249 tests, 13 files, all passing
+vitest run      254 tests, 13 files, all passing
 vite build      production bundle ~165 kB index + lazy app chunks
 ```
 

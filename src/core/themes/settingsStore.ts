@@ -2,12 +2,12 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { SettingsState } from '@/types';
 
-export const DEFAULT_WALLPAPER = 'wallpaper-aurora';
+export const DEFAULT_WALLPAPER = 'wallpaper-kali';
 
 export const DEFAULT_SETTINGS: SettingsState = {
   language: 'en',
-  theme: 'dark',
-  accent: 'mint',
+  theme: 'kali',
+  accent: 'blue',
   customAccent: null,
   wallpaper: DEFAULT_WALLPAPER,
   customWallpaper: null,
@@ -62,15 +62,27 @@ export const useSettings = create<SettingsStore>()(
     {
       name: 'nova-linux.settings.v1',
       storage: createJSONStorage(() => localStorage),
-      version: 2,
+      version: 3,
       partialize: (state) => {
         const { set: _set, patch: _patch, reset: _reset, ...rest } = state;
         return rest;
       },
       migrate: (persisted, version) => {
-        if (version < 1) return { ...DEFAULT_SETTINGS, ...(persisted as object) };
+        const saved = (persisted ?? {}) as Partial<SettingsState>;
+        if (version < 1) return { ...DEFAULT_SETTINGS, ...saved } as SettingsStore;
+        if (version < 3) {
+          // v3 is the Kali-inspired skin. Profiles that never customised their
+          // look move to the new defaults (Kali theme, blue accent, dragon
+          // wallpaper); anyone who deliberately picked one of the older presets
+          // keeps it, because only the *previous defaults* are rewritten.
+          const wallpaper =
+            !saved.wallpaper || saved.wallpaper === 'wallpaper-aurora' ? 'wallpaper-kali' : saved.wallpaper;
+          const accent = !saved.accent || saved.accent === 'mint' ? 'blue' : saved.accent;
+          const theme = !saved.theme || saved.theme === 'dark' ? 'kali' : saved.theme;
+          return { ...DEFAULT_SETTINGS, ...saved, theme, accent, wallpaper } as SettingsStore;
+        }
         // v2 added session restore, cross-tab sync and wallpaper dim/blur.
-        return { ...DEFAULT_SETTINGS, ...(persisted as object) } as SettingsStore;
+        return { ...DEFAULT_SETTINGS, ...saved } as SettingsStore;
       },
     },
   ),
@@ -78,6 +90,8 @@ export const useSettings = create<SettingsStore>()(
 
 export function accentHex(accent: SettingsState['accent']): string {
   switch (accent) {
+    case 'blue':
+      return '#2fb4ff';
     case 'sky':
       return '#4aa8ff';
     case 'violet':
