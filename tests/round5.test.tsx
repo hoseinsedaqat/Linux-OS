@@ -107,6 +107,23 @@ describe('terminal completion and manual pages', () => {
 });
 
 describe('command palette searches the file system', () => {
+  it('keeps app launches ahead of content-only file matches', async () => {
+    render(<CommandPalette open onClose={() => {}} onLock={() => {}} onShowShortcuts={() => {}} />);
+    const input = await waitFor(() => {
+      const node = document.querySelector('.palette__search input') as HTMLInputElement | null;
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    // "browser" appears in Welcome.txt content, but launching Browser must win.
+    fireEvent.change(input, { target: { value: 'browser' } });
+    const first = await waitFor(() => {
+      const node = document.querySelector('.palette__item-label');
+      expect(node).toBeTruthy();
+      return node!;
+    });
+    expect(first.textContent).toBe('Browser');
+  });
+
   it('finds a file by name and opens it in the editor that owns it', async () => {
     render(<CommandPalette open onClose={() => {}} onLock={() => {}} onShowShortcuts={() => {}} />);
     const input = (await waitFor(() => {

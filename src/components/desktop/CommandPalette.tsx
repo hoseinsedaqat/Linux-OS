@@ -175,39 +175,36 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
       },
     ];
 
-    // Files: name matches always, content matches once the term is specific
-    // enough to be useful (a 1-letter scan of every file is noise, not search).
+    // Files: names first (they behave like app launches), content matches after
+    // the commands, so typing an app name still launches that app.
     const term = query.trim().toLowerCase();
-    const fileCommands: Command[] =
-      term.length < 2
-        ? []
-        : Object.values(nodes)
-            .filter((node) => node.kind !== 'folder' && !node.trashed)
-            .flatMap((node) => {
-              const name = node.name.toLowerCase();
-              const content = (node.content ?? '').toLowerCase();
-              const nameHit = name.includes(term);
-              const contentHit = !nameHit && content.includes(term);
-              if (!nameHit && !contentHit) return [];
-              const at = contentHit ? Math.max(0, content.indexOf(term) - 24) : 0;
-              const snippet = contentHit
-                ? (node.content ?? '').slice(at, at + 70).replace(/\s+/g, ' ').trim()
-                : pathOf(nodes, node.id);
-              return [{
-                id: `file-${node.id}`,
-                label: node.name,
-                hint: contentHit ? `…${snippet}…` : pathOf(nodes, node.id),
-                group: t('Files'),
-                icon: FileText,
-                rank: nameHit ? 0 : 1,
-                run: () => {
-                  openApp(fileAppFor(node), { path: pathOf(nodes, node.id) });
-                  onClose();
-                },
-              }];
-            })
-            .sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label))
-            .slice(0, 8);
+    const nameFileCommands: Command[] = [];
+    const contentFileCommands: Command[] = [];
+    if (term.length >= 2) {
+      const files = Object.values(nodes)
+        .filter((node) => node.kind !== 'folder' && !node.trashed)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const node of files) {
+        const nameHit = node.name.toLowerCase().includes(term);
+        const content = (node.content ?? '').toLowerCase();
+        const contentHit = !nameHit && content.includes(term);
+        if (!nameHit && !contentHit) continue;
+        const at = contentHit ? Math.max(0, content.indexOf(term) - 24) : 0;
+        const snippet = contentHit ? (node.content ?? '').slice(at, at + 70).replace(/\s+/g, ' ').trim() : '';
+        const command: Command = {
+          id: `file-${node.id}`,
+          label: node.name,
+          hint: contentHit ? `…${snippet}…` : pathOf(nodes, node.id),
+          group: t('Files'),
+          icon: FileText,
+          run: () => {
+            openApp(fileAppFor(node), { path: pathOf(nodes, node.id) });
+            onClose();
+          },
+        };
+        (nameHit ? nameFileCommands : contentFileCommands).push(command);
+      }
+    }
 
     const workspaces: Command[] = Array.from({ length: WORKSPACE_COUNT }, (_, i) => i + 1).map((n) => ({
       id: `ws-${n}`,
@@ -220,7 +217,14 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
       },
     }));
 
-    return [...fileCommands, ...apps, ...openWindows, ...actions, ...workspaces];
+    return [
+      ...nameFileCommands.slice(0, 5),
+      ...apps,
+      ...openWindows,
+      ...actions,
+      ...workspaces,
+      ...contentFileCommands.slice(0, 5),
+    ];
   }, [
     installed,
     windows,
@@ -241,9 +245,7 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
   const results = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return commands.slice(0, 24);
-    const files = commands.filter((command) => command.id.startsWith('file-'));
-    const rest = commands.filter((command) => !command.id.startsWith('file-'));
-    return [...files, ...rest]
+    return commands
       .filter((command) => `${command.label} ${command.hint ?? ''} ${command.group}`.toLowerCase().includes(term))
       .slice(0, 24);
   }, [commands, query]);
