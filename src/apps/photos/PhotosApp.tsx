@@ -67,7 +67,31 @@ export function PhotosApp(_props: AppWindowProps) {
 
   if (images.length === 0) {
     return (
-      <div className="app photos">
+      <div
+      className="app photos"
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('text/nova-file')) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const id = event.dataTransfer.getData('text/nova-file');
+        if (!id) return;
+        const node = useFiles.getState().nodes[id];
+        if (!node || node.kind !== 'image') return;
+        event.preventDefault();
+        let targetId = node.id;
+        if (node.parentId !== FOLDER_IDS.pictures) {
+          // Real copy into Pictures, so the gallery can show it from now on.
+          const copy = useFiles.getState().duplicateNode(node.id);
+          if (copy && useFiles.getState().moveNode(copy.id, FOLDER_IDS.pictures)) targetId = copy.id;
+        }
+        const position = useFiles
+          .getState()
+          .nodes[targetId]
+          ? images.findIndex((image) => image.id === targetId)
+          : -1;
+        if (position >= 0) setIndex(position);
+      }}
+    >
         <div className="photos__empty">
           <ImageOff size={30} strokeWidth={1.3} />
           <strong>{t('No pictures yet')}</strong>

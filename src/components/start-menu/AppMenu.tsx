@@ -11,6 +11,7 @@ import {
   Settings2,
   MinusSquare,
   PlusSquare,
+  Sparkles,
   Star,
   StarOff,
   TerminalSquare,
@@ -324,6 +325,15 @@ export function AppMenu({ open, onLock, onShutdown }: AppMenuProps) {
                   }}
                 >
                   <Settings2 size={16} />
+                </button>
+                <button
+                  className="icon-btn"
+                  title={t("What's new")}
+                  onClick={() => {
+                    useShell.getState().openOverlay('whatsnew');
+                  }}
+                >
+                  <Sparkles size={16} />
                 </button>
                 <button className="icon-btn" title={t('Lock Screen')} onClick={onLock}>
                   <Lock size={16} />

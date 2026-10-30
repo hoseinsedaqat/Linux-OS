@@ -9,10 +9,13 @@ import {
   FolderOpen,
   PanelLeftClose,
   PanelLeftOpen,
+  History,
+  Redo2,
   Save,
   Search,
   Sparkles,
   Trash2,
+  Undo2,
   X,
 } from 'lucide-react';
 import type { AppWindowProps } from '@/core/apps/types';
@@ -81,6 +84,8 @@ export function CodeApp({ win }: AppWindowProps) {
   const [paletteQuery, setPaletteQuery] = useState('');
   const [paletteIndex, setPaletteIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [snapshots, setSnapshots] = useState<Record<string, Array<{ at: number; content: string }>>>({});
 
   const areaRef = useRef<HTMLTextAreaElement | null>(null);
   const preRef = useRef<HTMLPreElement | null>(null);
@@ -141,14 +146,100 @@ export function CodeApp({ win }: AppWindowProps) {
 
   /* ---------- editing ---------- */
 
-  const save = useCallback(() => {
+  /**
+   * Local version history: the last snapshots of each file, kept in
+   * localStorage. This is a browser-local undo trail, not git — the UI says so.
+   */
+  const pushSnapshot = useCallback((id: string, content: string) => {
+    if (!content.trim()) return;
+    setSnapshots((current) => {
+      const list = current[id] ?? [];
+      if (list[0]?.content === content) return current;
+      const next = [{ at: Date.now(), content }, ...list].slice(0, 12);
+      try {
+        localStorage.setItem(`nova.code.history.${id}`, JSON.stringify(next));
+      } catch {
+        /* storage blocked — history simply stays in memory */
+      }
+      return { ...current, [id]: next };
+    });
+  }, []);
+
+  const save = useCallback(
+    (options: { silent?: boolean } = {}) => {
+      if (!activeId) return;
+      const next = drafts[activeId];
+      if (next === undefined) return;
+      updateContent(activeId, next);
+      setDirty((current) => ({ ...current, [activeId]: false }));
+      pushSnapshot(activeId, next);
+      if (!options.silent) notifySuccess(t('Saved'), activeNode?.name, 'code');
+    },
+    [activeId, drafts, updateContent, t, activeNode?.name, pushSnapshot],
+  );
+
+  /** Write dirty buffers back to the file system a moment after typing stops. */
+  useEffect(() => {
+    const pending = Object.keys(dirty).filter((id) => dirty[id] && id in drafts);
+    if (pending.length === 0) return;
+    const timer = window.setTimeout(() => {
+      pending.forEach((id) => {
+        const next = drafts[id];
+        if (next === undefined) return;
+        updateContent(id, next);
+        pushSnapshot(id, next);
+      });
+      setDirty((current) => {
+        const next = { ...current };
+        pending.forEach((id) => {
+          next[id] = false;
+        });
+        return next;
+      });
+    }, 1100);
+    return () => window.clearTimeout(timer);
+  }, [drafts, dirty, updateContent, pushSnapshot]);
+
+  /* Undo / redo stacks per file, with typing coalesced into ~500 ms steps. */
+  const undoStack = useRef<Record<string, Array<{ value: string; at: number }>>>({});
+  const redoStack = useRef<Record<string, string[]>>({});
+
+  const applyHistory = (next: string) => {
     if (!activeId) return;
-    const next = drafts[activeId];
-    if (next === undefined) return;
-    updateContent(activeId, next);
-    setDirty((current) => ({ ...current, [activeId]: false }));
-    notifySuccess(t('Saved'), activeNode?.name, 'code');
-  }, [activeId, drafts, updateContent, t, activeNode?.name]);
+    setDrafts((current) => ({ ...current, [activeId]: next }));
+    setDirty((current) => ({ ...current, [activeId]: true }));
+  };
+
+  const undo = () => {
+    if (!activeId) return;
+    const stack = undoStack.current[activeId] ?? [];
+    const entry = stack.pop();
+    if (!entry) return;
+    redoStack.current[activeId] = [...(redoStack.current[activeId] ?? []), drafts[activeId] ?? ''];
+    applyHistory(entry.value);
+  };
+
+  const redo = () => {
+    if (!activeId) return;
+    const stack = redoStack.current[activeId] ?? [];
+    const entry = stack.pop();
+    if (entry === undefined) return;
+    undoStack.current[activeId] = [...(undoStack.current[activeId] ?? []), { value: drafts[activeId] ?? '', at: Date.now() }];
+    applyHistory(entry);
+  };
+
+  useEffect(() => {
+    if (!historyOpen || !activeId) return;
+    try {
+      const raw = localStorage.getItem(`nova.code.history.${activeId}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Array<{ at: number; content: string }>;
+        setSnapshots((current) => (current[activeId]?.length ? current : { ...current, [activeId]: parsed }));
+      }
+    } catch {
+      /* corrupt entry: keep the in-memory list */
+    }
+  }, [historyOpen, activeId]);
 
   useEffect(() => {
     try {
@@ -280,6 +371,20 @@ export function CodeApp({ win }: AppWindowProps) {
 
   const onChange = (next: string) => {
     if (!activeId) return;
+    const previous = drafts[activeId] ?? '';
+    if (next !== previous) {
+      const stack = undoStack.current[activeId] ?? [];
+      const last = stack[stack.length - 1];
+      // Coalesce bursts of typing into one undo step per ~600 ms.
+      if (!last || Date.now() - last.at > 600) {
+        stack.push({ value: previous, at: Date.now() });
+        if (stack.length > 200) stack.shift();
+        undoStack.current[activeId] = stack;
+      } else {
+        last.at = Date.now();
+      }
+      redoStack.current[activeId] = [];
+    }
     setDrafts((current) => ({ ...current, [activeId]: next }));
     setDirty((current) => (current[activeId] ? current : { ...current, [activeId]: true }));
   };
@@ -326,7 +431,20 @@ export function CodeApp({ win }: AppWindowProps) {
   };
 
   return (
-    <div className={cn('app code', !sidebarOpen && 'is-sidebar-hidden')}>
+    <div
+      className={cn('app code', !sidebarOpen && 'is-sidebar-hidden')}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('text/nova-file')) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const id = event.dataTransfer.getData('text/nova-file');
+        if (!id) return;
+        event.preventDefault();
+        const node = useFiles.getState().nodes[id];
+        if (!node || node.kind === 'folder') return;
+        openFile(node);
+      }}
+    >
       {/* activity bar */}
       <div className="code__activity" role="toolbar" aria-label={t('Editor')}>
         <button
@@ -362,6 +480,20 @@ export function CodeApp({ win }: AppWindowProps) {
           aria-pressed={previewOpen}
         >
           <Eye size={17} />
+        </button>
+        <button className="code__activity-btn" onClick={undo} title={t('Undo (Ctrl+Z)')} aria-label={t('Undo')}>
+          <Undo2 size={17} />
+        </button>
+        <button className="code__activity-btn" onClick={redo} title={t('Redo (Ctrl+Shift+Z)')} aria-label={t('Redo')}>
+          <Redo2 size={17} />
+        </button>
+        <button
+          className={cn('code__activity-btn', historyOpen && 'is-active')}
+          onClick={() => setHistoryOpen((open) => !open)}
+          title={t('Local history')}
+          aria-pressed={historyOpen}
+        >
+          <History size={17} />
         </button>
         <span className="code__activity-spacer" />
         <button
@@ -503,11 +635,50 @@ export function CodeApp({ win }: AppWindowProps) {
             <button className="code__mini-btn" onClick={runFormat} disabled={!activeId} title={t('Format document (Ctrl+Shift+F)')}>
               <Sparkles size={13} />
             </button>
-            <button className="code__mini-btn" onClick={save} disabled={!activeId || !dirty[activeId ?? '']} title={t('Save (Ctrl+S)')}>
+            <button
+              className="code__mini-btn"
+              onClick={() => save()}
+              disabled={!activeId || !dirty[activeId ?? '']}
+              title={t('Save (Ctrl+S)')}
+            >
               <Save size={13} />
             </button>
           </div>
         </div>
+
+        {historyOpen && activeNode && (
+          <div className="code__palette code__history" role="dialog" aria-label={t('Local history')}>
+            <div className="code__palette-head">
+              <History size={13} /> {t('Local history')} · <span className="muted">{activeNode.name}</span>
+              <button className="code__mini-btn" onClick={() => setHistoryOpen(false)} aria-label={t('Close')}>
+                <X size={12} />
+              </button>
+            </div>
+            <div className="code__palette-list">
+              {(snapshots[activeId ?? ''] ?? []).length === 0 && (
+                <div className="code__palette-empty">{t('No saved versions yet — save the file with Ctrl+S.')}</div>
+              )}
+              {(snapshots[activeId ?? ''] ?? []).map((entry) => (
+                <button
+                  key={entry.at}
+                  className="code__palette-item"
+                  onClick={() => {
+                    applyHistory(entry.content);
+                    setHistoryOpen(false);
+                  }}
+                >
+                  <span className="code__palette-label">
+                    {new Date(entry.at).toLocaleString()}
+                  </span>
+                  <span className="code__palette-hint">{entry.content.split('\n').length} {t('lines')}</span>
+                </button>
+              ))}
+            </div>
+            <div className="code__palette-foot muted tiny">
+              {t('Versions are stored in this browser only — this is not git.')}
+            </div>
+          </div>
+        )}
 
         {paletteOpen && (
           <div className="code__palette" role="dialog" aria-label={paletteOpen === 'files' ? t('Quick open') : t('Editor commands')}>
@@ -631,6 +802,18 @@ export function CodeApp({ win }: AppWindowProps) {
                 onKeyUp={updateCaret}
                 onClick={updateCaret}
                 onKeyDown={(event) => {
+                  const mod = event.ctrlKey || event.metaKey;
+                  if (mod && event.key.toLowerCase() === 'z') {
+                    event.preventDefault();
+                    if (event.shiftKey) redo();
+                    else undo();
+                    return;
+                  }
+                  if (mod && event.key.toLowerCase() === 'y') {
+                    event.preventDefault();
+                    redo();
+                    return;
+                  }
                   if (event.key === 'Tab') {
                     event.preventDefault();
                     const area = event.currentTarget;

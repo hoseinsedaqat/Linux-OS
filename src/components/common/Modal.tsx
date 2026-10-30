@@ -52,6 +52,7 @@ export function Modal({ open, onClose, title, icon, children, footer, wide, clos
             className={cn('modal', wide && 'modal--wide')}
             role="dialog"
             aria-modal="true"
+            aria-label={typeof title === 'string' ? title : undefined}
             initial={reduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 4 }}

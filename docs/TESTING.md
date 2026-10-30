@@ -114,7 +114,7 @@ release. "✔" marks points that are also covered by automated tests.
 
 ```bash
 npm run typecheck   # strict TS
-npm run test        # Vitest: 260 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
+npm run test        # Vitest: 272 tests — logic, apps, shell, games, search, code, round4, responsive, a11y
 npm run test:e2e    # Playwright: real Chromium smoke suite (CI: .github/workflows/e2e.yml)
 ```
 
@@ -149,6 +149,15 @@ desktop is ready (900 ms timers) and both sit on top of the windows the tests dr
 full-screen backdrop that swallows pointer events and the Welcome window covers the game board. The
 suite used to race those timers, which showed up as random 60 s click timeouts. `signIn()` still
 dismisses either surface if one appears anyway, so the helper stays honest.
+
+## Round-5 additions to the automated suites
+
+- `tests/round5.test.tsx` (12) — recurring events (daily/weekly/monthly expansion, ordering, .ics
+  round-trip and malformed input), shell Tab completion (commands and paths) and `man`, the command
+  palette finding files by name and by content and opening the right app, Quick Look (opens on
+  `Space`, shows the file, closes on `Escape`), and the release-notes payload.
+- `tests/round4-ui.test.tsx` (32) — typed code staying visible in the editor, the four `~/Projects`
+  samples, the Kali skin, the terminal singleton and focus hand-off.
 
 ## Round-4 additions to the automated suites
 

@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: SettingsState = {
   panelAutoHide: false,
   reduceMotion: false,
   sounds: true,
+  themeAuto: false,
   highContrast: false,
   screensaverMinutes: 0,
   uiScale: 100,

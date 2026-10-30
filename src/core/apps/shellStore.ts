@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ShellOverlay = 'appmenu' | 'quick' | 'notifications' | 'calendar' | 'power' | 'overview' | 'shortcuts' | 'tour' | null;
+export type ShellOverlay = 'appmenu' | 'quick' | 'notifications' | 'calendar' | 'power' | 'overview' | 'shortcuts' | 'tour' | 'whatsnew' | null;
 
 interface ShellState {
   overlay: ShellOverlay;

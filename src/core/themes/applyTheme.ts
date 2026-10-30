@@ -6,7 +6,16 @@ import kaliWallpaperThumb from '@/assets/wallpapers/kali-thumb.jpg';
 /** Reflect the settings store into <html> attributes and CSS custom properties. */
 export function applyTheme(settings: SettingsState): void {
   const root = document.documentElement;
-  root.dataset.theme = settings.theme;
+  // "Follow the clock": light between 07:00 and 19:00, Kali outside it. The
+  // stored theme is untouched, so switching the option off restores it.
+  const hour = new Date().getHours();
+  const effectiveTheme: SettingsState['theme'] = settings.themeAuto
+    ? hour >= 7 && hour < 19
+      ? 'light'
+      : 'kali'
+    : settings.theme;
+  root.dataset.theme = effectiveTheme;
+  root.dataset.themeAuto = String(Boolean(settings.themeAuto));
   root.dataset.accent = settings.accent;
   root.dataset.reduceMotion = String(settings.reduceMotion);
   root.dir = settings.language === 'fa' ? 'rtl' : 'ltr';
@@ -39,7 +48,7 @@ export function applyTheme(settings: SettingsState): void {
   }
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  const themeColor = settings.theme === 'light' ? '#e8edf3' : settings.theme === 'kali' ? '#04060b' : '#05080b';
+  const themeColor = effectiveTheme === 'light' ? '#e8edf3' : effectiveTheme === 'kali' ? '#04060b' : '#05080b';
   if (meta) meta.setAttribute('content', themeColor);
 }
 

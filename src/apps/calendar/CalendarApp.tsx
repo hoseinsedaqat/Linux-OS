@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays } from 'lucide-react';
+import { Bell, ChevronLeft, ChevronRight, Download, Plus, Trash2, CalendarDays, Upload } from 'lucide-react';
 import type { AppWindowProps } from '@/core/apps/types';
 import { useSettings } from '@/core/themes/settingsStore';
 import { useT } from '@/core/localization/i18n';
 import { usePersistedValue } from '@/core/persistence/kvStore';
-import { EVENT_COLORS, addEvent, calendarStore, deleteEvent } from './calendarStore';
+import { EVENT_COLORS, addEvent, calendarStore, deleteEvent, eventsOn, fromIcs, toIcs } from './calendarStore';
+import { notify, notifySuccess } from '@/core/notifications/notificationsStore';
+import { downloadBlob } from '@/utils';
 import { EmptyState } from '@/components/common/Controls';
 import { cn } from '@/utils';
 import { formatLocalizedDate } from '@/core/localization/i18n';
@@ -25,7 +27,14 @@ export function CalendarApp({ win }: AppWindowProps) {
     return new Date();
   });
   const [selectedDate, setSelectedDate] = useState(() => win.payload?.date ?? iso(new Date()));
-  const [form, setForm] = useState({ title: '', time: '09:00', color: EVENT_COLORS[0], notes: '' });
+  const [form, setForm] = useState({
+    title: '',
+    time: '09:00',
+    color: EVENT_COLORS[0],
+    notes: '',
+    repeat: 'none' as 'none' | 'daily' | 'weekly' | 'monthly',
+    remindMinutes: 0,
+  });
   const [error, setError] = useState<string | null>(null);
 
   const year = cursor.getFullYear();
@@ -58,9 +67,7 @@ export function CalendarApp({ win }: AppWindowProps) {
     }
   }, [win.payload?.date]);
 
-  const selectedEvents = events
-    .filter((event) => event.date === selectedDate)
-    .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+  const selectedEvents = eventsOn(events, selectedDate);
 
   const add = () => {
     if (!form.title.trim()) {
@@ -73,9 +80,67 @@ export function CalendarApp({ win }: AppWindowProps) {
       time: form.time,
       color: form.color,
       notes: form.notes.trim() || undefined,
+      repeat: form.repeat,
+      remindMinutes: form.remindMinutes || undefined,
     });
-    setForm({ title: '', time: '09:00', color: EVENT_COLORS[0], notes: '' });
+    setForm({ title: '', time: '09:00', color: EVENT_COLORS[0], notes: '', repeat: 'none', remindMinutes: 0 });
     setError(null);
+  };
+
+  /* Reminders: checked every 30 s while the app is open, for today's events. */
+  useEffect(() => {
+    const fired = new Set<string>();
+    const check = () => {
+      const today = iso(new Date());
+      const now = Date.now();
+      for (const event of eventsOn(events, today)) {
+        if (!event.remindMinutes || !event.time) continue;
+        const key = `${event.id}-${today}`;
+        if (fired.has(key)) continue;
+        const at = new Date(`${today}T${event.time}:00`).getTime() - event.remindMinutes * 60_000;
+        if (at <= now && now - at < 5 * 60_000) {
+          fired.add(key);
+          notify(t('Reminder'), { body: `${event.time} · ${event.title}`, kind: 'info' });
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            try {
+              new Notification(event.title, { body: `${event.time} · ${t('Reminder')}` });
+            } catch {
+              /* the in-app notification already covered it */
+            }
+          }
+        }
+      }
+    };
+    check();
+    const timer = window.setInterval(check, 30_000);
+    return () => window.clearInterval(timer);
+  }, [events, t]);
+
+  const exportIcs = () => {
+    downloadBlob('nova-calendar.ics', new Blob([toIcs(events)], { type: 'text/calendar' }));
+    notifySuccess(t('Exported'), 'nova-calendar.ics');
+  };
+
+  const importIcs = async (file: File) => {
+    const parsed = fromIcs(await file.text());
+    if (parsed.length === 0) {
+      notify(t('No events found in that file'), { kind: 'warning' });
+      return;
+    }
+    parsed.forEach((event) => addEvent(event));
+    notifySuccess(t('Imported {n} events', { n: parsed.length }), file.name);
+  };
+
+  const enableReminders = async () => {
+    if (typeof Notification === 'undefined') {
+      notify(t('This browser does not support system notifications'), { kind: 'warning' });
+      return;
+    }
+    const result = await Notification.requestPermission();
+    notify(
+      result === 'granted' ? t('System reminders enabled') : t('Permission denied — reminders stay inside NOVA'),
+      { kind: result === 'granted' ? 'success' : 'warning' },
+    );
   };
 
   const dow = language === 'fa' ? ['ی', 'د', 'س', 'چ', 'پ', 'ج', 'ش'] : ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -104,6 +169,25 @@ export function CalendarApp({ win }: AppWindowProps) {
           </button>
           <span className="grow" />
           <span className="tiny faint">{events.length} {t('Events')}</span>
+          <button className="icon-btn" onClick={exportIcs} title={t('Export as .ics')} aria-label={t('Export as .ics')}>
+            <Download size={14} />
+          </button>
+          <label className="icon-btn" title={t('Import an .ics file')} aria-label={t('Import an .ics file')}>
+            <Upload size={14} />
+            <input
+              type="file"
+              accept=".ics,text/calendar"
+              hidden
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void importIcs(file);
+                event.target.value = '';
+              }}
+            />
+          </label>
+          <button className="icon-btn" onClick={() => void enableReminders()} title={t('Enable system reminders')} aria-label={t('Enable system reminders')}>
+            <Bell size={14} />
+          </button>
         </div>
 
         <div className="calendar-app__grid">
@@ -217,6 +301,30 @@ export function CalendarApp({ win }: AppWindowProps) {
                 />
               ))}
             </div>
+          </div>
+          <div className="row" style={{ gap: 8 }}>
+            <select
+              className="select"
+              value={form.repeat}
+              onChange={(event) => setForm((current) => ({ ...current, repeat: event.target.value as typeof form.repeat }))}
+              aria-label={t('Repeat')}
+            >
+              <option value="none">{t('Does not repeat')}</option>
+              <option value="daily">{t('Daily')}</option>
+              <option value="weekly">{t('Weekly')}</option>
+              <option value="monthly">{t('Monthly')}</option>
+            </select>
+            <select
+              className="select"
+              value={form.remindMinutes}
+              onChange={(event) => setForm((current) => ({ ...current, remindMinutes: Number(event.target.value) }))}
+              aria-label={t('Reminder')}
+            >
+              <option value={0}>{t('No reminder')}</option>
+              <option value={5}>{t('5 minutes before')}</option>
+              <option value={15}>{t('15 minutes before')}</option>
+              <option value={60}>{t('1 hour before')}</option>
+            </select>
           </div>
           <button className="btn btn--primary btn--sm" onClick={add}>
             <Plus size={14} /> {t('Add event')}

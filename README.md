@@ -5,7 +5,7 @@
 **A complete Linux desktop environment that boots, runs and remembers — entirely in your browser.**
 
 [![Live demo](https://img.shields.io/badge/live-demo-3ddc97?style=for-the-badge&logo=githubpages&logoColor=white)](https://hoseinsedaqat.github.io/Linux-OS/)
-[![Tests](https://img.shields.io/badge/tests-260%20passing-3ddc97?style=for-the-badge)](#testing)
+[![Tests](https://img.shields.io/badge/tests-272%20passing-3ddc97?style=for-the-badge)](#testing)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](#tech-stack)
 [![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react&logoColor=black)](#tech-stack)
 [![Vite](https://img.shields.io/badge/Vite-5-646cff?style=for-the-badge&logo=vite&logoColor=white)](#tech-stack)
@@ -29,6 +29,7 @@ public APIs the search engine and the weather app query on your behalf.
 - [What this is (and is not)](#what-this-is-and-is-not)
 - [Highlights](#highlights)
 - [Design language: Kali-inspired](#design-language-kali-inspired)
+- [New in round 5](#new-in-round-5)
 - [New in round 4](#new-in-round-4)
 - [Screens](#screens)
 - [Applications](#applications)
@@ -112,6 +113,24 @@ copying its artwork:
 Everything is still driven by CSS variables in `src/styles/tokens.css`, scoped to
 `[data-theme='kali']` in `src/styles/shell.css`, so **Dark** and **Light** remain one click away in
 Settings → Appearance, and the accent studio still overrides the blue for anyone who wants their own.
+
+---
+
+## New in round 5
+
+Everything below is wired end to end and covered by tests; nothing is a mock control.
+
+| Feature | What you get |
+| --- | --- |
+| **Find files from `Ctrl+K`** | The command palette searches file names *and* file contents across the virtual file system, and opens each hit in the application that owns it (Code, Writer, Calc, Impress, Notes, Photos). Name matches rank first; content matches show the matching line. |
+| **Quick Look in Files** | Select a file and press `Space` for an instant preview: text and code in a monospace pane, Markdown rendered, images fitted to the window, and an honest "this type opens in an app" state for everything else. `Esc` or `Space` closes it, `Enter` opens the file. |
+| **A real editor** | Per-file undo/redo (`Ctrl+Z`, `Ctrl+Shift+Z`, `Ctrl+Y`) with typing coalesced into sane steps, autosave about a second after you stop typing, and a local version history per file (last 12 saves) you can restore from — labelled as browser-local, not git. |
+| **Drag files between windows** | Dragging a file out of Files and dropping it on **Code** opens it in the editor, on **Writer** loads it into the document, on **Photos** copies it into `~/Pictures` and shows it, and on the **desktop** copies it there. |
+| **A sharper terminal** | `Tab` completes command names and paths (ambiguous prefixes list their matches), `Ctrl+R` walks backwards through history, and `man <command>` prints a manual page for the simulated shell. |
+| **Calendar that leaves the browser** | Export the calendar as a standard `.ics` file, import one back (VEVENT, RRULE and DESCRIPTION are parsed), repeat events daily/weekly/monthly, and set reminders that fire in-app — or as system notifications when you grant permission. |
+| **Honest system data** | System Monitor gained a card that reads the JS heap, logical core count, connection state, pixel ratio and language straight from the browser APIs, next to the clearly labelled simulated metrics. |
+| **Release notes and update banner** | A "What's new" sheet opens once per build (and from the application menu), and when a new service worker finishes installing the desktop offers **Reload now** instead of leaving you on a cached build. |
+| **Follow the clock** | Settings → Appearance can switch the light theme on by day and Kali by night, without touching your stored theme choice. |
 
 ---
 
@@ -324,7 +343,7 @@ npm run dev        # http://localhost:5173
 
 ```bash
 npm run typecheck  # strict TypeScript, no emit
-npm run test       # 260 Vitest tests (jsdom + Testing Library)
+npm run test       # 272 Vitest tests (jsdom + Testing Library)
 npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build locally
 npm run test:e2e   # Playwright smoke suite (needs npx playwright install --with-deps chromium)
@@ -452,7 +471,7 @@ Full list: [`docs/SHORTCUTS.md`](docs/SHORTCUTS.md).
 
 ```
 tsc -b          clean (strict, project references)
-vitest run      260 tests, 13 files, all passing
+vitest run      272 tests, 14 files, all passing
 vite build      production bundle ~165 kB index + lazy app chunks
 ```
 

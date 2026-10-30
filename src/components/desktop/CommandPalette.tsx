@@ -4,6 +4,7 @@ import {
   AppWindow,
   ArrowRight,
   CornerDownLeft,
+  FileText,
   Grid2x2,
   Keyboard,
   Lock,
@@ -14,6 +15,9 @@ import {
   TerminalSquare,
 } from 'lucide-react';
 import { APP_META, VISIBLE_APP_IDS } from '@/core/apps/appMeta';
+import { fileAppFor } from '@/core/apps/types';
+import { useFiles } from '@/core/virtual-filesystem/fsStore';
+import { pathOf } from '@/core/virtual-filesystem/fsUtils';
 import { useLauncher } from '@/core/apps/launcherStore';
 import { useWindows, WORKSPACE_COUNT, workspaceOf } from '@/core/window-manager/windowsStore';
 import { useSettings } from '@/core/themes/settingsStore';
@@ -55,6 +59,7 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
   const toggleOverlay = useShell((state) => state.toggleOverlay);
   const theme = useSettings((state) => state.theme);
   const setSetting = useSettings((state) => state.set);
+  const nodes = useFiles((state) => state.nodes);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -101,12 +106,20 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
 
     const actions: Command[] = [
       {
+        // Cycles Kali → Dark → Light → Kali, so the command never lies about
+        // what it will do with the three themes we ship.
         id: 'theme',
-        label: theme === 'dark' ? t('Switch to light theme') : t('Switch to dark theme'),
+        label:
+          theme === 'kali'
+            ? t('Switch to dark theme')
+            : theme === 'dark'
+              ? t('Switch to light theme')
+              : t('Switch to Kali theme'),
+        hint: t('Theme'),
         group: t('Actions'),
-        icon: theme === 'dark' ? Sun : Moon,
+        icon: theme === 'kali' ? Moon : theme === 'dark' ? Sun : TerminalSquare,
         run: () => {
-          setSetting('theme', theme === 'dark' ? 'light' : 'dark');
+          setSetting('theme', theme === 'kali' ? 'dark' : theme === 'dark' ? 'light' : 'kali');
           onClose();
         },
       },
@@ -162,6 +175,37 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
       },
     ];
 
+    // Files: names first (they behave like app launches), content matches after
+    // the commands, so typing an app name still launches that app.
+    const term = query.trim().toLowerCase();
+    const nameFileCommands: Command[] = [];
+    const contentFileCommands: Command[] = [];
+    if (term.length >= 2) {
+      const files = Object.values(nodes)
+        .filter((node) => node.kind !== 'folder' && !node.trashed)
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const node of files) {
+        const nameHit = node.name.toLowerCase().includes(term);
+        const content = (node.content ?? '').toLowerCase();
+        const contentHit = !nameHit && content.includes(term);
+        if (!nameHit && !contentHit) continue;
+        const at = contentHit ? Math.max(0, content.indexOf(term) - 24) : 0;
+        const snippet = contentHit ? (node.content ?? '').slice(at, at + 70).replace(/\s+/g, ' ').trim() : '';
+        const command: Command = {
+          id: `file-${node.id}`,
+          label: node.name,
+          hint: contentHit ? `…${snippet}…` : pathOf(nodes, node.id),
+          group: t('Files'),
+          icon: FileText,
+          run: () => {
+            openApp(fileAppFor(node), { path: pathOf(nodes, node.id) });
+            onClose();
+          },
+        };
+        (nameHit ? nameFileCommands : contentFileCommands).push(command);
+      }
+    }
+
     const workspaces: Command[] = Array.from({ length: WORKSPACE_COUNT }, (_, i) => i + 1).map((n) => ({
       id: `ws-${n}`,
       label: t('Go to workspace {n}', { n }),
@@ -173,7 +217,14 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
       },
     }));
 
-    return [...apps, ...openWindows, ...actions, ...workspaces];
+    return [
+      ...nameFileCommands.slice(0, 5),
+      ...apps,
+      ...openWindows,
+      ...actions,
+      ...workspaces,
+      ...contentFileCommands.slice(0, 5),
+    ];
   }, [
     installed,
     windows,
@@ -187,6 +238,8 @@ export function CommandPalette({ open, onClose, onLock, onShowShortcuts }: Comma
     setSetting,
     onLock,
     onShowShortcuts,
+    nodes,
+    query,
   ]);
 
   const results = useMemo(() => {
