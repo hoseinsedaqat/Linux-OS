@@ -239,6 +239,19 @@ export function SettingsApp({ win }: AppWindowProps) {
                   ]}
                 />
               </div>
+              <div className="settings-row">
+                <div>
+                  <div className="settings-row__title">{t('Follow the clock')}</div>
+                  <div className="settings-row__desc">
+                    {t('Use the light theme between 07:00 and 19:00, and Kali outside those hours.')}
+                  </div>
+                </div>
+                <Toggle
+                  checked={settings.themeAuto}
+                  onChange={(value) => set('themeAuto', value)}
+                  label={t('Follow the clock')}
+                />
+              </div>
               <div className="settings-row settings-row--stack">
                 <div className="settings-row__title">{t('Accent color')}</div>
                 <div className="settings-swatches">

@@ -51,6 +51,9 @@ import { ConfirmDialog, Modal } from '@/components/common/Modal';
 import { PromptDialog } from '@/components/common/PromptDialog';
 import { EmptyState } from '@/components/common/Controls';
 import { AppIcon } from '@/components/common/AppIcon';
+import { MarkdownView } from '@/components/common/MarkdownView';
+import { parseMarkdown } from '@/core/markdown/markdown';
+import { Eye } from 'lucide-react';
 import { useT } from '@/core/localization/i18n';
 import { useSettings } from '@/core/themes/settingsStore';
 import { notify, notifyError } from '@/core/notifications/notificationsStore';
@@ -112,6 +115,7 @@ export function FilesApp({ win }: AppWindowProps) {
   const [confirm, setConfirm] = useState<null | { kind: 'empty-trash' | 'delete'; node?: FSNode }>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [preview, setPreview] = useState<FSNode | null>(null);
+  const [quickLook, setQuickLook] = useState<FSNode | null>(null);
   const menu = useContextMenu();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -397,7 +401,17 @@ export function FilesApp({ win }: AppWindowProps) {
     } else if (mod && event.key.toLowerCase() === 'v') {
       event.preventDefault();
       void paste();
+    } else if (event.key === ' ' && single) {
+      // Space toggles Quick Look — unless the key belongs to a text field.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault();
+      setQuickLook((current) => (current?.id === single.id ? null : single));
     } else if (event.key === 'Escape') {
+      if (quickLook) {
+        setQuickLook(null);
+        return;
+      }
       setSelected([]);
     }
   };
@@ -848,6 +862,63 @@ export function FilesApp({ win }: AppWindowProps) {
         </span>
         <span className="faint">{location.type === 'trash' ? t('Trash') : currentPath || t('Storage: simulated virtual file system')}</span>
       </footer>
+
+      {quickLook && (
+        <div
+          className="quicklook"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${t('Quick look')} — ${quickLook.name}`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setQuickLook(null);
+          }}
+        >
+          <div className="quicklook__card" onMouseDown={(event) => event.stopPropagation()}>
+            <header className="quicklook__head">
+              <Eye size={13} />
+              <strong className="truncate">{quickLook.name}</strong>
+              <span className="quicklook__meta">
+                {quickLook.kind} · {formatBytes(fileSize(quickLook))}
+              </span>
+              <button className="icon-btn" onClick={() => setQuickLook(null)} aria-label={t('Close')}>
+                ×
+              </button>
+            </header>
+            <div className="quicklook__body">
+              {quickLook.kind === 'image' ? (
+                (quickLook.meta?.mime as string | undefined)?.includes('svg') ? (
+                  <img src={`data:image/svg+xml;utf8,${encodeURIComponent(quickLook.content ?? '')}`} alt={quickLook.name} />
+                ) : (
+                  <img src={quickLook.content ?? ''} alt={quickLook.name} />
+                )
+              ) : quickLook.kind === 'text' || quickLook.kind === 'note' ? (
+                extensionOf(quickLook.name) === 'md' ? (
+                  <MarkdownView blocks={parseMarkdown(quickLook.content ?? '')} className="quicklook__md" />
+                ) : (
+                  <pre className="quicklook__code">{quickLook.content ?? ''}</pre>
+                )
+              ) : (
+                <div className="quicklook__empty">
+                  <p className="muted">
+                    {t('This file type opens in an application. Quick look shows only text and images.')}
+                  </p>
+                  <button className="btn btn--primary" onClick={() => openNode(quickLook)}>
+                    {t('Open')}
+                  </button>
+                </div>
+              )}
+            </div>
+            <footer className="quicklook__foot">
+              <span className="muted tiny">
+                <span className="kbd">Space</span> {t('closes the preview')} · <span className="kbd">↵</span> {t('opens the file')}
+              </span>
+              <button className="btn btn--primary" onClick={() => openNode(quickLook)}>
+                {t('Open')}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
 
       <Modal
         open={Boolean(preview)}

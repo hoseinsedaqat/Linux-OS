@@ -74,6 +74,58 @@ export const SHELL_HELP = `Available commands:
 Pipelines and redirections work:  ls | grep .ts | wc -l
                                    echo "hello" > notes.txt`;
 
+/** Every command the shell understands — used by Tab completion. */
+export const SHELL_COMMANDS = [
+  'help', 'man', 'clear', 'pwd', 'ls', 'cd', 'cat', 'echo', 'mkdir', 'touch', 'rm',
+  'grep', 'head', 'tail', 'wc', 'sort', 'uniq', 'find', 'tree', 'uname', 'date',
+  'time', 'whoami', 'history', 'neofetch', 'open',
+];
+
+const MAN_PAGES: Record<string, string> = {
+  ls: 'ls [-l] [path] — list a directory. -l prints size and modified date.',
+  cd: 'cd [path] — change directory. ".." goes up, "~" is the home folder.',
+  cat: 'cat <file>… — print files to standard output.',
+  echo: 'echo <text> — print text; append "> file" or ">> file" to write.',
+  grep: 'grep [-i] [-v] [-n] <pattern> — filter lines from a file or a pipe.',
+  head: 'head [-n N] — first N lines of a file or a pipe (default 10).',
+  tail: 'tail [-n N] — last N lines of a file or a pipe (default 10).',
+  wc: 'wc [-l|-w|-c] — count lines, words or characters.',
+  rm: 'rm [-r] <path>… — remove files; folders need -r.',
+  mkdir: 'mkdir <name>… — create directories.',
+  touch: 'touch <name>… — create empty files.',
+  open: 'open <path> — open a file in the matching desktop application.',
+  history: 'history — list the commands you have typed in this session.',
+  help: 'help — list every command the simulated shell supports.',
+};
+
+/** Tab completion: command names first, then paths relative to the cwd. */
+export function completeShell(
+  input: string,
+  cwd: string,
+  nodes: NodeMap,
+): { value: string; options: string[] } {
+  const typed = input;
+  const lastSpace = typed.lastIndexOf(' ');
+  const head = typed.slice(0, lastSpace + 1);
+  const fragment = typed.slice(lastSpace + 1);
+  if (lastSpace === -1) {
+    const options = SHELL_COMMANDS.filter((name) => name.startsWith(fragment));
+    return { value: options.length === 1 ? `${options[0]} ` : typed, options };
+  }
+  const dirPath = fragment.includes('/') ? resolvePath(nodes, cwd, fragment.slice(0, fragment.lastIndexOf('/') + 1)) : cwd;
+  const dir = findByPath(nodes, dirPath);
+  if (!dir) return { value: typed, options: [] };
+  const prefix = fragment.slice(fragment.lastIndexOf('/') + 1);
+  const options = childrenOf(nodes, dir.id)
+    .filter((node) => node.name.startsWith(prefix))
+    .map((node) => (node.kind === 'folder' ? `${node.name}/` : node.name));
+  if (options.length === 1) {
+    const base = fragment.slice(0, fragment.lastIndexOf('/') + 1);
+    return { value: `${head}${base}${options[0]}`, options };
+  }
+  return { value: typed, options };
+}
+
 /** Split a command line on a separator, respecting quotes and escapes. */
 export function splitUnquoted(input: string, separator: string): string[] {
   const parts: string[] = [];
@@ -199,6 +251,13 @@ function runStage(ctx: ShellContext, stage: string, stdin: string): StageResult 
     }
     case 'help':
       return finish(SHELL_HELP);
+    case 'man': {
+      const topic = (rest[0] ?? '').toLowerCase();
+      if (!topic) return fail('usage: man <command> — try "man ls"');
+      const page = MAN_PAGES[topic];
+      if (!page) return fail(`No manual entry for ${topic}`);
+      return finish(`${topic}(1)                    NOVA shell                    ${topic}(1)\n\n${page}\n`);
+    }
     case 'clear': {
       result.clear = true;
       return result;

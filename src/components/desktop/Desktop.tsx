@@ -35,6 +35,9 @@ import { APP_META } from '@/core/apps/appMeta';
 import { WindowManager } from '@/components/windows/WindowManager';
 import { Panel } from '@/components/taskbar/Panel';
 import { AppMenu } from '@/components/start-menu/AppMenu';
+import { WhatsNew } from '@/components/desktop/WhatsNew';
+import { RELEASE, RELEASE_SEEN_KEY } from '@/core/apps/releaseNotes';
+import { applyServiceWorkerUpdate } from '@/core/pwa/register';
 import { Toasts } from '@/components/common/Toasts';
 import { AppIcon } from '@/components/common/AppIcon';
 import { useContextMenu } from '@/components/common/ContextMenu';
@@ -116,6 +119,7 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   const setPalette = useShell((state) => state.setPalette);
   const [prompt, setPrompt] = useState<{ mode: 'folder' | 'text' | 'rename'; node?: FSNode } | null>(null);
   const [introVisible, setIntroVisible] = useState(!sessionStorage.getItem('nova.introShown'));
+  const [updateReady, setUpdateReady] = useState(false);
 
   const coarsePointer = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches,
@@ -197,6 +201,32 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
       unsubscribe();
       window.removeEventListener('beforeunload', onUnload);
     };
+  }, []);
+
+  /* A new service worker finished installing: offer a reload instead of
+     leaving the tab on a cached build. */
+  useEffect(() => {
+    const onUpdate = () => setUpdateReady(true);
+    window.addEventListener('nova:update-ready', onUpdate);
+    return () => window.removeEventListener('nova:update-ready', onUpdate);
+  }, []);
+
+  /* Release notes: open once per build, but never on a brand-new profile. */
+  useEffect(() => {
+    // Only a production build introduces itself; dev servers and the test suite
+    // must not get surprise dialogs on every reload.
+    if (!import.meta.env.PROD) return;
+    try {
+      const seen = localStorage.getItem(RELEASE_SEEN_KEY);
+      if (seen === RELEASE.version) return;
+      localStorage.setItem(RELEASE_SEEN_KEY, RELEASE.version);
+      // Returning visitors (they already have settings saved) get the sheet once;
+      // a brand-new profile gets the welcome app instead of two dialogs at once.
+      const returning = seen !== null || localStorage.getItem('nova-linux.settings.v1') !== null;
+      if (returning) useShell.getState().openOverlay('whatsnew');
+    } catch {
+      /* storage blocked: the sheet stays available from the menu */
+    }
   }, []);
 
   useEffect(() => {
@@ -470,6 +500,20 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
   const onDropImage = async (event: React.DragEvent) => {
     event.preventDefault();
     setDropActive(false);
+    // A file dragged out of Files is copied onto the desktop, not re-uploaded.
+    const draggedId = event.dataTransfer.getData('text/nova-file');
+    if (draggedId) {
+      const source = nodes[draggedId];
+      const desktopId = nodes[FOLDER_IDS.desktop]?.id;
+      if (source && desktopId && source.parentId !== desktopId) {
+        const copy = useFiles.getState().duplicateNode(source.id);
+        if (copy && useFiles.getState().moveNode(copy.id, desktopId)) {
+          notify(t('Copied to Desktop'), { body: copy.name, kind: 'success' });
+          setSelected(copy.id);
+        }
+      }
+      return;
+    }
     const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/'));
     if (!file) return;
     try {
@@ -617,6 +661,7 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
         <Panel metrics={metrics} onLock={onLock} onShutdown={onShutdown} onRestart={onRestart} />
 
         <AppMenu open={overlay === 'appmenu'} onLock={onLock} onShutdown={onShutdown} />
+        <WhatsNew open={overlay === 'whatsnew'} onClose={() => useShell.getState().closeOverlays()} />
 
         <Overview />
 
@@ -689,6 +734,24 @@ export function Desktop({ onLock, onShutdown, onRestart }: DesktopProps) {
 
       <Toasts />
       <Osd />
+
+      {updateReady && (
+        <div className="update-bar" role="status">
+          <span>{t('A new version of NOVA is ready.')}</span>
+          <button
+            className="btn btn--primary btn--sm"
+            onClick={() => {
+              applyServiceWorkerUpdate();
+              window.setTimeout(() => window.location.reload(), 250);
+            }}
+          >
+            {t('Reload now')}
+          </button>
+          <button className="icon-btn" onClick={() => setUpdateReady(false)} aria-label={t('Dismiss')}>
+            ×
+          </button>
+        </div>
+      )}
       {menu.node}
 
       <AppShortcutDialog open={shortcutDialog} onClose={() => setShortcutDialog(false)} />

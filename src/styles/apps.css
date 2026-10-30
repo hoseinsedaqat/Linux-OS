@@ -4567,3 +4567,145 @@ html[dir='rtl'] .select--compact {
     transition: none;
   }
 }
+
+/* ---------- Quick Look (Files, Space) ---------- */
+
+.quicklook {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 5, 10, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+.quicklook__card {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(78vh, 620px);
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  background: var(--window-bg);
+  box-shadow: var(--shadow-lg);
+}
+
+.quicklook__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-1);
+  background: var(--surface-1);
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.quicklook__meta {
+  margin-inline-start: auto;
+  color: var(--text-3);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.quicklook__body {
+  flex: 1;
+  min-height: 120px;
+  overflow: auto;
+  padding: 14px 16px;
+  background: var(--code-bg);
+}
+
+.quicklook__code {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.quicklook__md {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.quicklook__body img {
+  display: block;
+  margin: 0 auto;
+  max-height: 46vh;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.quicklook__empty {
+  display: grid;
+  gap: 12px;
+  place-items: center;
+  padding: 30px 10px;
+  text-align: center;
+}
+
+.quicklook__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-1);
+  background: var(--surface-1);
+}
+
+@media (max-width: 640px) {
+  .quicklook {
+    padding: 10px;
+  }
+
+  .quicklook__card {
+    max-height: 88vh;
+  }
+
+  .quicklook__foot .muted {
+    display: none;
+  }
+}
+
+/* ---------- What's new sheet ---------- */
+
+.whatsnew {
+  display: grid;
+  gap: 12px;
+}
+
+.whatsnew__list {
+  display: grid;
+  gap: 10px;
+}
+
+.whatsnew__item {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.whatsnew__item strong {
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.whatsnew__item span {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.whatsnew__foot {
+  margin-top: 2px;
+}

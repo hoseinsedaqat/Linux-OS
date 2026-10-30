@@ -4160,3 +4160,29 @@ html[dir='rtl'] .login__footer .select {
     transition: none;
   }
 }
+
+/* Update banner: shown when a new service worker has installed. */
+.update-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(var(--panel-h) + 22px);
+  z-index: 9500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 8px 10px 8px 16px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-pill);
+  background: var(--menu-bg);
+  color: var(--text-1);
+  font-size: 12.5px;
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme='kali'] .update-bar {
+  border-color: rgba(79, 227, 255, 0.4);
+  box-shadow: 0 0 0 1px rgba(79, 227, 255, 0.12), 0 18px 40px -22px rgba(0, 0, 0, 0.9);
+}

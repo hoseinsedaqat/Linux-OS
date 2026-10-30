@@ -304,7 +304,33 @@ export function WriterApp({ win }: AppWindowProps) {
   };
 
   return (
-    <div className="app writer">
+    <div
+      className="app writer"
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes('text/nova-file')) event.preventDefault();
+      }}
+      onDrop={(event) => {
+        const id = event.dataTransfer.getData('text/nova-file');
+        if (!id) return;
+        const node = useFiles.getState().nodes[id];
+        if (!node || (node.kind !== 'text' && node.kind !== 'document')) return;
+        event.preventDefault();
+        const html =
+          node.kind === 'document'
+            ? (() => {
+                try {
+                  return (JSON.parse(node.content ?? '') as WriterDoc).html;
+                } catch {
+                  return textToHtml(node.content ?? '');
+                }
+              })()
+            : textToHtml(node.content ?? '');
+        setDoc({ title: node.name.replace(/\.[^.]+$/, ''), html });
+        setFileNode(node);
+        setDirty(false);
+        notifySuccess(t('Opened'), node.name, 'writer');
+      }}
+    >
       <div className="app__menubar">
         <button className="menubar__item" onClick={newDoc}>
           <FilePlus2 size={14} /> {t('New Document')}

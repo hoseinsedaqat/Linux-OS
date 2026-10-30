@@ -40,6 +40,12 @@ export function SystemMonitorApp(_props: AppWindowProps) {
   const [memory, setMemory] = useState<number[]>(() => Array.from({ length: 40 }, () => 46));
   const [fps, setFps] = useState(60);
   const [usage, setUsage] = useState<{ usage: number; quota: number } | null>(null);
+  const [real, setReal] = useState<{ heap: number | null; heapLimit: number | null; online: boolean; cores: number }>({
+    heap: null,
+    heapLimit: null,
+    online: true,
+    cores: 0,
+  });
   const cpuRef = useRef(18);
   const memRef = useRef(46);
 
@@ -74,6 +80,28 @@ export function SystemMonitorApp(_props: AppWindowProps) {
   useEffect(() => {
     void estimateUsage().then(setUsage);
   }, [nodes]);
+
+  /* Real numbers from this browser — nothing simulated in this card. */
+  useEffect(() => {
+    const read = () => {
+      const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
+      setReal({
+        heap: memory ? memory.usedJSHeapSize : null,
+        heapLimit: memory ? memory.jsHeapSizeLimit : null,
+        online: navigator.onLine,
+        cores: navigator.hardwareConcurrency ?? 0,
+      });
+    };
+    read();
+    const interval = window.setInterval(read, 2000);
+    window.addEventListener('online', read);
+    window.addEventListener('offline', read);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('online', read);
+      window.removeEventListener('offline', read);
+    };
+  }, []);
 
   const diskUsed = useMemo(
     () => Object.values(nodes).reduce((acc, node) => acc + (node.kind === 'folder' ? 0 : fileSize(node)), 0),
@@ -185,6 +213,34 @@ export function SystemMonitorApp(_props: AppWindowProps) {
               <dt>{t('Session uptime')}</dt>
               <dd>{formatUptime()}</dd>
             </dl>
+          </div>
+
+          <div className="monitor__card">
+            <div className="monitor__card-head">
+              <span className="monitor__card-title">
+                <Cpu size={14} /> {t('This browser (real data)')}
+              </span>
+              <span className="badge badge--accent">{t('Real')}</span>
+            </div>
+            <dl className="monitor__stats">
+              <dt>{t('JS heap')}</dt>
+              <dd>
+                {real.heap !== null
+                  ? `${formatBytes(real.heap)}${real.heapLimit ? ` / ${formatBytes(real.heapLimit)}` : ''}`
+                  : t('Not exposed by this browser')}
+              </dd>
+              <dt>{t('Logical cores')}</dt>
+              <dd>{real.cores || '—'}</dd>
+              <dt>{t('Connection')}</dt>
+              <dd>{real.online ? t('Online') : t('Offline')}</dd>
+              <dt>{t('Pixel ratio')}</dt>
+              <dd>{window.devicePixelRatio.toFixed(2)}×</dd>
+              <dt>{t('Language')}</dt>
+              <dd>{navigator.language}</dd>
+            </dl>
+            <p className="tiny faint" style={{ marginTop: 8 }}>
+              {t('Read live from the browser APIs — this one is not simulated.')}
+            </p>
           </div>
         </div>
 

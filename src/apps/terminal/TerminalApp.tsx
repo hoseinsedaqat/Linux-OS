@@ -7,7 +7,7 @@ import { useSettings } from '@/core/themes/settingsStore';
 import { useT } from '@/core/localization/i18n';
 import { HOME_PATH, collectDescendants, findByPath, normalizePath } from '@/core/virtual-filesystem/fsUtils';
 import { cn, uid } from '@/utils';
-import { runLine, type ShellEffect } from './shell';
+import { completeShell, runLine, type ShellEffect } from './shell';
 
 interface Line {
   id: string;
@@ -32,6 +32,8 @@ export function TerminalApp({ win }: AppWindowProps) {
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  /** Depth of the Ctrl+R reverse search (-1 = not searching). */
+  const [searchDepth, setSearchDepth] = useState(-1);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -143,7 +145,10 @@ export function TerminalApp({ win }: AppWindowProps) {
             autoCapitalize="off"
             autoComplete="off"
             aria-label="Terminal command"
-            onChange={(event) => setInput(event.target.value)}
+            onChange={(event) => {
+              setInput(event.target.value);
+              setSearchDepth(-1);
+            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 // Keep the key local: nothing outside the shell should react to
@@ -152,6 +157,7 @@ export function TerminalApp({ win }: AppWindowProps) {
                 event.stopPropagation();
                 run(input);
                 setInput('');
+                setSearchDepth(-1);
               } else if (event.key === 'ArrowUp') {
                 event.preventDefault();
                 if (history.length === 0) return;
@@ -172,6 +178,31 @@ export function TerminalApp({ win }: AppWindowProps) {
               } else if (event.key === 'l' && event.ctrlKey) {
                 event.preventDefault();
                 setLines([]);
+              } else if (event.key === 'Tab') {
+                // Tab completes command names and paths, like a real shell.
+                event.preventDefault();
+                const result = completeShell(input, cwd, useFiles.getState().nodes);
+                if (result.options.length === 1) {
+                  setInput(result.value);
+                } else if (result.options.length > 1) {
+                  setLines((current) => [
+                    ...current,
+                    { id: uid('l'), kind: 'muted' as const, text: result.options.join('  ') },
+                  ]);
+                }
+              } else if (event.key === 'r' && event.ctrlKey) {
+                // Ctrl+R walks backwards through commands matching what is typed.
+                event.preventDefault();
+                if (history.length === 0) return;
+                const needle = input.trim().toLowerCase();
+                const from = searchDepth < 0 ? history.length - 1 : searchDepth - 1;
+                for (let i = from; i >= 0; i -= 1) {
+                  if (!needle || history[i].toLowerCase().includes(needle)) {
+                    setSearchDepth(i);
+                    setInput(history[i]);
+                    return;
+                  }
+                }
               }
             }}
           />

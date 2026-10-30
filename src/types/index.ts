@@ -169,6 +169,8 @@ export interface SettingsState {
   sounds: boolean;
   /** Boosts contrast and thickens focus rings for accessibility. */
   highContrast: boolean;
+  /** Follow the clock: light by day, Kali by night. Overrides `theme` while on. */
+  themeAuto: boolean;
   /** Minutes of inactivity before the screensaver appears (0 = off). */
   screensaverMinutes: number;
   uiScale: number;
@@ -245,6 +247,10 @@ export interface CalendarEvent {
   time?: string;
   color: string;
   notes?: string;
+  /** Optional recurrence, expanded at render time (no generated duplicates). */
+  repeat?: 'none' | 'daily' | 'weekly' | 'monthly';
+  /** Minutes before the event time to raise a reminder. */
+  remindMinutes?: number;
 }
 
 /* ------------------------------------------------------------------ */
